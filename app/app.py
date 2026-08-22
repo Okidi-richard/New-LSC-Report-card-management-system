@@ -155,7 +155,7 @@ with app.app_context():
         )
         db.session.add(admin)
         db.session.commit()
-        teacher = User.query.filter_by(username="teacher").first()
+teacher = User.query.filter_by(username="teacher").first()
 
 if not teacher:
     teacher = User(
