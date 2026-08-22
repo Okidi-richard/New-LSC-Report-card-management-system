@@ -155,6 +155,19 @@ with app.app_context():
         )
         db.session.add(admin)
         db.session.commit()
+        teacher = User.query.filter_by(username="teacher").first()
+
+if not teacher:
+    teacher = User(
+        full_name="Teacher",
+        username="teacher",
+        password_hash=generate_password_hash("Teacher@12345"),
+        role="teacher",
+        school_id=school.id,
+        active=True
+    )
+    db.session.add(teacher)
+    db.session.commit()
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_FOLDER = BASE_DIR / "uploads"
 OUTPUT_FOLDER = BASE_DIR / "outputs"
