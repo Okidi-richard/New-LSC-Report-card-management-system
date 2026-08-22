@@ -25,6 +25,7 @@ import pandas as pd
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from sqlalchemy import text
+from werkzeug.security import generate_password_hash
 
 # Import core logic from the existing system
 from report_card_system import (
@@ -128,6 +129,32 @@ class Subscription(db.Model):
 # Create the tables automatically when the application starts
 with app.app_context():
     db.create_all()
+        # Create the first school and administrator account
+    school = School.query.filter_by(
+        name="Safe Haven Christian High School Kalongo"
+    ).first()
+
+    if not school:
+        school = School(
+            name="Safe Haven Christian High School Kalongo",
+            district="Agago"
+        )
+        db.session.add(school)
+        db.session.flush()
+
+    admin = User.query.filter_by(username="admin").first()
+
+    if not admin:
+        admin = User(
+            full_name="System Administrator",
+            username="admin",
+            password_hash=generate_password_hash("Admin@12345"),
+            role="admin",
+            school_id=school.id,
+            active=True
+        )
+        db.session.add(admin)
+        db.session.commit()
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_FOLDER = BASE_DIR / "uploads"
 OUTPUT_FOLDER = BASE_DIR / "outputs"
