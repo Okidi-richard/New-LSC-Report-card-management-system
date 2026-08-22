@@ -19,7 +19,7 @@ if str(ROOT_DIR) not in sys.path:
 
 from flask import (
     Flask, render_template, request, redirect, url_for,
-    flash, send_file, send_from_directory, jsonify
+    flash, send_file, send_from_directory, jsonify, session
 )
 import pandas as pd
 from flask_sqlalchemy import SQLAlchemy
@@ -254,6 +254,577 @@ def grading_guide():
 def health():
     return jsonify({"status": "ok", "system": "Uganda Report Card System"})
 
+# ============================================================
+# TEACHER AND ADMINISTRATION MONITORING SYSTEM
+# ============================================================
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    from werkzeug.security import check_password_hash
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+
+        user = User.query.filter_by(username=username, active=True).first()
+
+        if user and check_password_hash(user.password_hash, password):
+            session["user_id"] = user.id
+            session["role"] = user.role
+            return redirect(url_for("portal"))
+
+        flash("Invalid username or password.", "error")
+
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>School Login</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background: #f1f5f9;
+                padding: 30px;
+            }
+            .box {
+                max-width: 420px;
+                margin: 50px auto;
+                background: white;
+                padding: 30px;
+                border-radius: 12px;
+                box-shadow: 0 3px 15px rgba(0,0,0,.15);
+            }
+            h2 { text-align: center; color: #174a7c; }
+            input, button {
+                width: 100%;
+                padding: 13px;
+                margin-top: 10px;
+                box-sizing: border-box;
+                border-radius: 6px;
+                border: 1px solid #ccc;
+            }
+            button {
+                background: #174a7c;
+                color: white;
+                border: none;
+                cursor: pointer;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="box">
+            <h2>UG Uganda Report Card System</h2>
+            <p style="text-align:center;">Teacher & Administration Login</p>
+
+            <form method="POST">
+                <input type="text" name="username"
+                       placeholder="Username" required>
+
+                <input type="password" name="password"
+                       placeholder="Password" required>
+
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </body>
+    </html>
+    """)
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
+@app.route("/portal")
+def portal():
+    user_id = session.get("user_id")
+
+    if not user_id:
+        return redirect(url_for("login"))
+
+    user = db.session.get(User, user_id)
+
+    if not user:
+        session.clear()
+        return redirect(url_for("login"))
+
+    if user.role == "admin":
+        return redirect(url_for("admin_dashboard"))
+
+    return redirect(url_for("teacher_dashboard"))
+
+
+@app.route("/teacher/dashboard")
+def teacher_dashboard():
+    user_id = session.get("user_id")
+
+    if not user_id:
+        return redirect(url_for("login"))
+
+    user = db.session.get(User, user_id)
+
+    if not user or user.role != "teacher":
+        return redirect(url_for("login"))
+
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Teacher Dashboard</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background: #f1f5f9;
+                padding: 20px;
+            }
+            .card {
+                max-width: 700px;
+                margin: auto;
+                background: white;
+                padding: 25px;
+                border-radius: 12px;
+                box-shadow: 0 3px 15px rgba(0,0,0,.12);
+            }
+            .btn {
+                display: block;
+                padding: 14px;
+                margin: 12px 0;
+                background: #174a7c;
+                color: white;
+                text-decoration: none;
+                border-radius: 7px;
+                text-align: center;
+            }
+            .logout {
+                background: #b91c1c;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h2>Teacher Dashboard</h2>
+            <p>Welcome, <strong>{{ user.full_name }}</strong></p>
+
+            <a class="btn" href="{{ url_for('teacher_marks') }}">
+                Enter / Submit Marks
+            </a>
+
+            <a class="btn logout" href="{{ url_for('logout') }}">
+                Logout
+            </a>
+        </div>
+    </body>
+    </html>
+    """, user=user)
+
+
+@app.route("/teacher/marks", methods=["GET", "POST"])
+def teacher_marks():
+    user_id = session.get("user_id")
+
+    if not user_id:
+        return redirect(url_for("login"))
+
+    user = db.session.get(User, user_id)
+
+    if not user or user.role != "teacher":
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        student_name = request.form.get("student_name", "").strip()
+        class_name = request.form.get("class_name", "").strip()
+        subject = request.form.get("subject", "").strip()
+        mark = request.form.get("mark", "").strip()
+
+        if student_name and class_name and subject and mark:
+            entry = MarkEntry(
+                teacher_id=user.id,
+                student_name=student_name,
+                class_name=class_name,
+                subject=subject,
+                mark=float(mark),
+                status="submitted"
+            )
+
+            db.session.add(entry)
+            db.session.commit()
+
+            flash("Mark submitted successfully.", "success")
+
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Enter Marks</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background: #f1f5f9;
+                padding: 20px;
+            }
+            .card {
+                max-width: 600px;
+                margin: auto;
+                background: white;
+                padding: 25px;
+                border-radius: 12px;
+            }
+            input, button {
+                width: 100%;
+                padding: 13px;
+                margin: 8px 0;
+                box-sizing: border-box;
+            }
+            button {
+                background: #174a7c;
+                color: white;
+                border: none;
+                border-radius: 6px;
+            }
+            .back {
+                display: block;
+                margin-top: 15px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h2>Teacher Mark Entry</h2>
+
+            <form method="POST">
+                <input name="student_name"
+                       placeholder="Student name" required>
+
+                <input name="class_name"
+                       placeholder="Class e.g. S.4" required>
+
+                <input name="subject"
+                       placeholder="Subject" required>
+
+                <input name="mark"
+                       type="number"
+                       min="0"
+                       max="100"
+                       step="0.01"
+                       placeholder="Mark out of 100"
+                       required>
+
+                <button type="submit">Submit Mark</button>
+            </form>
+
+            <a class="back" href="{{ url_for('teacher_dashboard') }}">
+                ← Back to Dashboard
+            </a>
+        </div>
+    </body>
+    </html>
+    """)
+
+
+@app.route("/admin/dashboard")
+def admin_dashboard():
+    user_id = session.get("user_id")
+
+    if not user_id:
+        return redirect(url_for("login"))
+
+    user = db.session.get(User, user_id)
+
+    if not user or user.role != "admin":
+        return redirect(url_for("login"))
+
+    entries = MarkEntry.query.order_by(
+        MarkEntry.created_at.desc()
+    ).all()
+
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Administration Dashboard</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background: #f1f5f9;
+                padding: 15px;
+            }
+            .card {
+                background: white;
+                padding: 20px;
+                border-radius: 12px;
+                overflow-x: auto;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                min-width: 700px;
+            }
+            th, td {
+                padding: 10px;
+                border-bottom: 1px solid #ddd;
+                text-align: left;
+            }
+            th {
+                background: #174a7c;
+                color: white;
+            }
+            .logout {
+                display: inline-block;
+                margin-bottom: 15px;
+                background: #b91c1c;
+                color: white;
+                padding: 10px 15px;
+                text-decoration: none;
+                border-radius: 6px;
+            }
+        </style>
+    </head>
+    <body>
+        <h2>School Administration Dashboard</h2>
+
+        <a class="logout" href="{{ url_for('logout') }}">Logout</a>
+
+        <div class="card">
+            <h3>Teacher Mark Submissions</h3>
+
+            {% if entries %}
+            <table>
+                <tr>
+                    <th>Teacher</th>
+                    <th>Student</th>
+                    <th>Class</th>
+                    <th>Subject</th>
+                    <th>Mark</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                </tr>
+
+                {% for entry in entries %}
+                <tr>
+                    <td>{{ entry.teacher.full_name }}</td>
+                    <td>{{ entry.student_name }}</td>
+                    <td>{{ entry.class_name }}</td>
+                    <td>{{ entry.subject }}</td>
+                    <td>{{ entry.mark }}</td>
+                    <td>{{ entry.status }}</td>
+                    <td>{{ entry.created_at }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+
+            {% else %}
+            <p>No marks have been submitted yet.</p>
+            {% endif %}
+        </div>
+    </body>
+    </html>
+    """, entries=entries)
+
+# ==============================
+# ADMINISTRATION MONITORING
+# ==============================
+
+@app.route("/admin")
+@login_required
+def admin_dashboard():
+    # Only school administrators can access this page
+    if current_user.role not in ["admin", "administrator", "headteacher", "head_teacher"]:
+        return "Access denied. Administrator account required.", 403
+
+    # Check whether the school's subscription is active
+    subscription = (
+        Subscription.query
+        .filter_by(school_id=current_user.school_id, status="active")
+        .order_by(Subscription.expiry_date.desc())
+        .first()
+    )
+
+    if not subscription or not subscription.expiry_date or subscription.expiry_date < datetime.utcnow():
+        return """
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Subscription Required</title>
+            <style>
+                body {
+                    font-family: Arial;
+                    padding: 30px;
+                    background: #f4f7fb;
+                    text-align: center;
+                }
+                .box {
+                    background: white;
+                    max-width: 500px;
+                    margin: 40px auto;
+                    padding: 30px;
+                    border-radius: 12px;
+                    box-shadow: 0 2px 10px #ccc;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="box">
+                <h2>Subscription Required</h2>
+                <p>Your school's report-card monitoring subscription is inactive or expired.</p>
+                <h3>Termly Subscription: UGX 150,000</h3>
+                <p>Please renew the subscription to access administration monitoring.</p>
+            </div>
+        </body>
+        </html>
+        """, 403
+
+    # Get marks entered by teachers in this school
+    entries = (
+        MarkEntry.query
+        .join(User, MarkEntry.teacher_id == User.id)
+        .filter(User.school_id == current_user.school_id)
+        .order_by(MarkEntry.created_at.desc())
+        .all()
+    )
+
+    rows = ""
+
+    for entry in entries:
+        rows += f"""
+        <tr>
+            <td>{entry.teacher.full_name}</td>
+            <td>{entry.student_name}</td>
+            <td>{entry.class_name}</td>
+            <td>{entry.subject}</td>
+            <td>{entry.mark}</td>
+            <td>{entry.status}</td>
+            <td>{entry.created_at}</td>
+        </tr>
+        """
+
+    if not rows:
+        rows = """
+        <tr>
+            <td colspan="7" style="text-align:center;">
+                No marks have been entered yet.
+            </td>
+        </tr>
+        """
+
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Administration Monitoring</title>
+
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                background: #f4f7fb;
+                margin: 0;
+                padding: 15px;
+            }}
+
+            .header {{
+                background: #145a86;
+                color: white;
+                padding: 18px;
+                border-radius: 10px;
+                margin-bottom: 15px;
+            }}
+
+            .card {{
+                background: white;
+                padding: 18px;
+                border-radius: 10px;
+                margin-bottom: 15px;
+                box-shadow: 0 2px 8px #ddd;
+            }}
+
+            .subscription {{
+                border-left: 5px solid green;
+            }}
+
+            .table-container {{
+                overflow-x: auto;
+                background: white;
+                border-radius: 10px;
+                padding: 10px;
+            }}
+
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                min-width: 850px;
+            }}
+
+            th, td {{
+                padding: 10px;
+                border-bottom: 1px solid #ddd;
+                text-align: left;
+            }}
+
+            th {{
+                background: #145a86;
+                color: white;
+            }}
+
+            .refresh {{
+                display: inline-block;
+                background: #145a86;
+                color: white;
+                padding: 10px 16px;
+                text-decoration: none;
+                border-radius: 6px;
+                margin-top: 10px;
+            }}
+        </style>
+    </head>
+
+    <body>
+
+        <div class="header">
+            <h2>School Administration Monitoring</h2>
+            <p>{current_user.school_id}</p>
+        </div>
+
+        <div class="card subscription">
+            <h3>Subscription Status</h3>
+            <p><strong>Amount:</strong> UGX 150,000 per term</p>
+            <p><strong>Status:</strong> ACTIVE</p>
+            <p><strong>Expires:</strong> {subscription.expiry_date}</p>
+        </div>
+
+        <div class="card">
+            <h3>Teacher Mark Entry Monitoring</h3>
+            <p>
+                This page shows marks entered by teachers in your school.
+            </p>
+            <a class="refresh" href="/admin">Refresh Records</a>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <tr>
+                    <th>Teacher</th>
+                    <th>Student</th>
+                    <th>Class</th>
+                    <th>Subject</th>
+                    <th>Mark</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                </tr>
+
+                {rows}
+
+            </table>
+        </div>
+
+    </body>
+    </html>
+    """
 
 if __name__ == "__main__":
     # Ensure a template exists
