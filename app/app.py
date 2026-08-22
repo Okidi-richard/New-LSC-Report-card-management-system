@@ -59,6 +59,9 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
+@login_manager.user_loader
+def load_user(user_id):
+    return None
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_FOLDER = BASE_DIR / "uploads"
 OUTPUT_FOLDER = BASE_DIR / "outputs"
