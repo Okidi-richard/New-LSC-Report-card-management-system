@@ -23,7 +23,7 @@ from flask import (
 )
 import pandas as pd
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from sqlalchemy import text
 
 # Import core logic from the existing system
@@ -61,7 +61,73 @@ login_manager = LoginManager(app)
 login_manager.login_view = "login"
 @login_manager.user_loader
 def load_user(user_id):
-    return None
+        return db.session.get(User, int(user_id))
+# ==============================
+# ADMINISTRATION MONITORING MODELS
+# ==============================
+
+class School(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    district = db.Column(db.String(100))
+    active = db.Column(db.Boolean, default=True)
+
+    users = db.relationship("User", backref="school", lazy=True)
+    subscriptions = db.relationship("Subscription", backref="school", lazy=True)
+
+
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    full_name = db.Column(db.String(150), nullable=False)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(30), nullable=False, default="teacher")
+
+    school_id = db.Column(db.Integer, db.ForeignKey("school.id"), nullable=False)
+
+    active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    mark_entries = db.relationship("MarkEntry", backref="teacher", lazy=True)
+
+
+class MarkEntry(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    teacher_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    student_name = db.Column(db.String(150), nullable=False)
+    class_name = db.Column(db.String(50), nullable=False)
+    subject = db.Column(db.String(100), nullable=False)
+
+    mark = db.Column(db.Float)
+    status = db.Column(db.String(30), default="draft")
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow
+    )
+
+
+class Subscription(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    school_id = db.Column(db.Integer, db.ForeignKey("school.id"), nullable=False)
+
+    amount = db.Column(db.Integer, default=150000)
+    term = db.Column(db.String(50), nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+
+    start_date = db.Column(db.DateTime)
+    expiry_date = db.Column(db.DateTime)
+
+    status = db.Column(db.String(30), default="active")
+
+
+# Create the tables automatically when the application starts
+with app.app_context():
+    db.create_all()
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_FOLDER = BASE_DIR / "uploads"
 OUTPUT_FOLDER = BASE_DIR / "outputs"
