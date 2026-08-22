@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Home · Uganda Report Card System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>📋 How it works</h2>
+    <div class="steps">
+        <div class="step">
+            <div class="step-num">1</div>
+            <h3>Download Template</h3>
+            <p>Get the Excel workbook with sample data and clear instructions.</p>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <h3>Fill Marks</h3>
+            <p>Enter student details and Formative + Summative scores (out of 100).</p>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <h3>Upload &amp; Generate</h3>
+            <p>Upload the filled Excel. The system calculates grades and creates PDFs.</p>
+        </div>
+        <div class="step">
+            <div class="step-num">4</div>
+            <h3>Download</h3>
+            <p>Download individual report cards or a ZIP of the whole class.</p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>⬇️ Step 1 — Download Excel Template</h2>
+    <p style="margin-bottom: 1rem;">
+        The template contains four sheets: <strong>School Settings</strong>, <strong>Students</strong>,
+        <strong>Marks</strong>, and <strong>Grading Guide</strong>. Sample data is included so you can
+        test immediately.
+    </p>
+    <a href="{{ url_for('download_template') }}" class="btn btn-outline">
+        Download Excel Template
+    </a>
+</div>
+
+<div class="card">
+    <h2>⬆️ Step 2 &amp; 3 — Upload &amp; Generate Report Cards</h2>
+    <form action="{{ url_for('generate') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+        <div class="upload-zone" id="dropZone" onclick="document.getElementById('excel_file').click()">
+            <div class="icon">📄</div>
+            <p><strong>Click to select</strong> or drag &amp; drop your filled Excel file here</p>
+            <p style="font-size: 0.8rem; margin-top: 0.4rem; color: #888;">Accepted: .xlsx</p>
+            <input type="file" name="excel_file" id="excel_file" accept=".xlsx,.xls" required>
+        </div>
+        <p id="fileName" style="margin: 0.75rem 0; font-size: 0.9rem; color: var(--primary); display: none;"></p>
+        <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">
+            Generate Report Cards
+        </button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>ℹ️ About the System</h2>
+    <ul style="padding-left: 1.2rem; margin-top: 0.5rem;">
+        <li>Uses the official CBC formula: <strong>Final = (Formative × 20%) + (Summative × 80%)</strong></li>
+        <li>Assigns grades A–E with official UNEB/NCDC descriptors</li>
+        <li>Generates professional one-page PDF report cards ready for printing</li>
+        <li>Produces a class summary for quick overview</li>
+        <li>Works for S1–S4 (Lower Secondary / UCE)</li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('excel_file');
+    const fileName = document.getElementById('fileName');
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length) {
+            fileName.textContent = 'Selected: ' + fileInput.files[0].name;
+            fileName.style.display = 'block';
+        }
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            fileName.textContent = 'Selected: ' + e.dataTransfer.files[0].name;
+            fileName.style.display = 'block';
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Results · Uganda Report Card System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>✅ Report Cards Generated Successfully</h2>
+    <p>
+        <span class="badge">{{ count }} report card{{ 's' if count != 1 else '' }}</span>
+        created for this class.
+    </p>
+    <div style="margin-top: 1.25rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <a href="{{ url_for('download_all', run_id=run_id) }}" class="btn btn-success">
+            ⬇️ Download All (ZIP)
+        </a>
+        <a href="{{ url_for('index') }}" class="btn btn-outline">Generate Another Batch</a>
+    </div>
+</div>
+
+{% if summary %}
+<div class="card">
+    <h2>📊 Class Summary</h2>
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Admission No</th>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th>Subjects</th>
+                    <th>Average</th>
+                    <th>Grade</th>
+                    <th>Descriptor</th>
+                    <th>Attendance %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in summary %}
+                <tr>
+                    <td>{{ row['Admission No'] }}</td>
+                    <td>{{ row['Name'] }}</td>
+                    <td>{{ row['Class'] }}</td>
+                    <td>{{ row['Subjects'] }}</td>
+                    <td><strong>{{ row['Average'] }}</strong></td>
+                    <td class="grade-{{ row['Overall Grade'] }}">{{ row['Overall Grade'] }}</td>
+                    <td>{{ row['Descriptor'] }}</td>
+                    <td>{{ row['Attendance %'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <h2>📄 Individual Report Cards</h2>
+    <ul class="file-list">
+        {% for f in files %}
+        <li>
+            <span>{{ f }}</span>
+            <span>
+                <a href="{{ url_for('preview_pdf', run_id=run_id, filename=f) }}" target="_blank" class="btn btn-outline" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;">Preview</a>
+                <a href="{{ url_for('download_file', run_id=run_id, filename=f) }}" class="btn btn-primary" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;">Download</a>
+            </span>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
