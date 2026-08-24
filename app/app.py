@@ -489,93 +489,167 @@ def teacher_marks():
         student_name = request.form.get("student_name", "").strip()
         class_name = request.form.get("class_name", "").strip()
         subject = request.form.get("subject", "").strip()
-        mark = request.form.get("mark", "").strip()
+        mark_value = request.form.get("mark", "").strip()
 
-        if student_name and class_name and subject and mark:
-            entry = MarkEntry(
-                teacher_id=user.id,
-                student_name=student_name,
-                class_name=class_name,
-                subject=subject,
-                mark=float(mark),
-                status="submitted"
-            )
+        if student_name and class_name and subject and mark_value:
+            try:
+                mark = float(mark_value)
 
-            db.session.add(entry)
-            db.session.commit()
+                if mark < 0 or mark > 100:
+                    return "Mark must be between 0 and 100.", 400
 
-            flash("Mark submitted successfully.", "success")
+                entry = MarkEntry(
+                    teacher_id=user.id,
+                    student_name=student_name,
+                    class_name=class_name,
+                    subject=subject,
+                    mark=mark,
+                    status="submitted"
+                )
+
+                db.session.add(entry)
+                db.session.commit()
+
+                return redirect(url_for("teacher_marks"))
+
+            except ValueError:
+                return "Invalid mark. Please enter a number between 0 and 100.", 400
+
+            except Exception:
+                db.session.rollback()
+                return "Unable to save the mark. Please try again.", 500
 
     return render_template_string("""
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Enter Marks</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Teacher Mark Entry</title>
+
         <style>
             body {
                 font-family: Arial, sans-serif;
                 background: #f1f5f9;
-                padding: 20px;
+                margin: 0;
+                padding: 40px;
             }
-            .card {
-                max-width: 600px;
+
+            .container {
+                max-width: 650px;
                 margin: auto;
                 background: white;
-                padding: 25px;
+                padding: 28px;
                 border-radius: 12px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.08);
             }
-            input, button {
-                width: 100%;
-                padding: 13px;
-                margin: 8px 0;
-                box-sizing: border-box;
+
+            h1 {
+                margin-bottom: 25px;
+                color: #111827;
             }
-            button {
-                background: #174a7c;
-                color: white;
-                border: none;
-                border-radius: 6px;
-            }
-            .back {
+
+            label {
                 display: block;
                 margin-top: 15px;
+                margin-bottom: 6px;
+                font-weight: bold;
+            }
+
+            input {
+                width: 100%;
+                box-sizing: border-box;
+                padding: 13px;
+                border: 1px solid #aaa;
+                border-radius: 5px;
+                font-size: 15px;
+            }
+
+            button {
+                width: 100%;
+                padding: 14px;
+                margin-top: 22px;
+                background: #1f5688;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                font-size: 16px;
+                cursor: pointer;
+            }
+
+            button:hover {
+                background: #16446f;
+            }
+
+            .back {
+                display: inline-block;
+                margin-top: 20px;
+                color: #1f5688;
+                text-decoration: none;
+            }
+
+            .back:hover {
+                text-decoration: underline;
             }
         </style>
     </head>
+
     <body>
-        <div class="card">
-            <h2>Teacher Mark Entry</h2>
+
+        <div class="container">
+
+            <h1>Teacher Mark Entry</h1>
 
             <form method="POST">
-                <input name="student_name"
-                       placeholder="Student name" required>
 
-                <input name="class_name"
-                       placeholder="Class e.g. S.4" required>
+                <label>Student Name</label>
+                <input
+                    type="text"
+                    name="student_name"
+                    placeholder="Student name"
+                    required
+                >
 
-                <input name="subject"
-                       placeholder="Subject" required>
+                <label>Class</label>
+                <input
+                    type="text"
+                    name="class_name"
+                    placeholder="Class e.g. S.4"
+                    required
+                >
 
-                <input name="mark"
-                       type="number"
-                       min="0"
-                       max="100"
-                       step="0.01"
-                       placeholder="Mark out of 100"
-                       required>
+                <label>Subject</label>
+                <input
+                    type="text"
+                    name="subject"
+                    placeholder="Subject"
+                    required
+                >
 
-                <button type="submit">Submit Mark</button>
+                <label>Mark</label>
+                <input
+                    type="number"
+                    name="mark"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    placeholder="Mark out of 100"
+                    required
+                >
+
+                <button type="submit">
+                    Submit Mark
+                </button>
+
             </form>
 
             <a class="back" href="{{ url_for('teacher_dashboard') }}">
                 ← Back to Dashboard
             </a>
+
         </div>
+
     </body>
     </html>
     """)
-
 
 @app.route("/admin/students", methods=["GET", "POST"])
 def manage_students():
