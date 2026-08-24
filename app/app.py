@@ -485,172 +485,193 @@ def teacher_marks():
     if not user or user.role != "teacher":
         return redirect(url_for("login"))
 
+    # Get students belonging to the teacher's school
+    students = Student.query.filter_by(
+        school_id=user.school_id,
+        active=True
+    ).order_by(Student.class_name, Student.full_name).all()
+
     if request.method == "POST":
-        student_name = request.form.get("student_name", "").strip()
-        class_name = request.form.get("class_name", "").strip()
+        student_id = request.form.get("student_id", "").strip()
         subject = request.form.get("subject", "").strip()
         mark_value = request.form.get("mark", "").strip()
 
-        if student_name and class_name and subject and mark_value:
-            try:
-                mark = float(mark_value)
+        if not student_id or not subject or not mark_value:
+            return "Please select a student, enter the subject and enter the mark.", 400
 
-                if mark < 0 or mark > 100:
-                    return "Mark must be between 0 and 100.", 400
+        try:
+            mark = float(mark_value)
 
-                entry = MarkEntry(
-                    teacher_id=user.id,
-                    student_name=student_name,
-                    class_name=class_name,
-                    subject=subject,
-                    mark=mark,
-                    status="submitted"
-                )
+            if mark < 0 or mark > 100:
+                return "Mark must be between 0 and 100.", 400
 
-                db.session.add(entry)
-                db.session.commit()
+            student = db.session.get(Student, int(student_id))
 
-                return redirect(url_for("teacher_marks"))
+            if not student:
+                return "Selected student was not found.", 404
 
-            except ValueError:
-                return "Invalid mark. Please enter a number between 0 and 100.", 400
+            # Make sure the student belongs to the same school
+            if student.school_id != user.school_id:
+                return "You cannot enter marks for this student.", 403
 
-            except Exception:
-                db.session.rollback()
-                return "Unable to save the mark. Please try again.", 500
+            entry = MarkEntry(
+                teacher_id=user.id,
+                student_name=student.full_name,
+                class_name=student.class_name,
+                subject=subject,
+                mark=mark,
+                status="submitted"
+            )
+
+            db.session.add(entry)
+            db.session.commit()
+
+            return redirect(url_for("teacher_marks"))
+
+        except ValueError:
+            return "Invalid mark or student selection.", 400
+
+        except Exception:
+            db.session.rollback()
+            return "Unable to save the mark. Please try again.", 500
 
     return render_template_string("""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Teacher Mark Entry</title>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teacher Mark Entry</title>
 
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                background: #f1f5f9;
-                margin: 0;
-                padding: 40px;
-            }
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            margin: 0;
+            padding: 40px 20px;
+        }
 
-            .container {
-                max-width: 650px;
-                margin: auto;
-                background: white;
-                padding: 28px;
-                border-radius: 12px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            }
+        .container {
+            max-width: 700px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.10);
+        }
 
-            h1 {
-                margin-bottom: 25px;
-                color: #111827;
-            }
+        h1 {
+            margin-bottom: 30px;
+            color: #111827;
+        }
 
-            label {
-                display: block;
-                margin-top: 15px;
-                margin-bottom: 6px;
-                font-weight: bold;
-            }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-top: 18px;
+            margin-bottom: 8px;
+        }
 
-            input {
-                width: 100%;
-                box-sizing: border-box;
-                padding: 13px;
-                border: 1px solid #aaa;
-                border-radius: 5px;
-                font-size: 15px;
-            }
+        select,
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 13px;
+            border: 1px solid #b8b8b8;
+            border-radius: 6px;
+            font-size: 15px;
+        }
 
-            button {
-                width: 100%;
-                padding: 14px;
-                margin-top: 22px;
-                background: #1f5688;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                font-size: 16px;
-                cursor: pointer;
-            }
+        select:focus,
+        input:focus {
+            outline: none;
+            border: 2px solid #2563eb;
+        }
 
-            button:hover {
-                background: #16446f;
-            }
+        button {
+            width: 100%;
+            margin-top: 25px;
+            padding: 14px;
+            border: none;
+            border-radius: 6px;
+            background: #245b8f;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
 
-            .back {
-                display: inline-block;
-                margin-top: 20px;
-                color: #1f5688;
-                text-decoration: none;
-            }
+        button:hover {
+            background: #1d4f7d;
+        }
 
-            .back:hover {
-                text-decoration: underline;
-            }
-        </style>
-    </head>
+        .back {
+            display: inline-block;
+            margin-top: 20px;
+            color: #145ca8;
+            text-decoration: none;
+        }
 
-    <body>
+        .back:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
 
-        <div class="container">
+<body>
 
-            <h1>Teacher Mark Entry</h1>
+<div class="container">
 
-            <form method="POST">
+    <h1>Teacher Mark Entry</h1>
 
-                <label>Student Name</label>
-                <input
-                    type="text"
-                    name="student_name"
-                    placeholder="Student name"
-                    required
-                >
+    <form method="POST">
 
-                <label>Class</label>
-                <input
-                    type="text"
-                    name="class_name"
-                    placeholder="Class e.g. S.4"
-                    required
-                >
+        <label>Student</label>
 
-                <label>Subject</label>
-                <input
-                    type="text"
-                    name="subject"
-                    placeholder="Subject"
-                    required
-                >
+        <select name="student_id" required>
+            <option value="">Select student</option>
 
-                <label>Mark</label>
-                <input
-                    type="number"
-                    name="mark"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    placeholder="Mark out of 100"
-                    required
-                >
+            {% for student in students %}
+                <option value="{{ student.id }}">
+                    {{ student.full_name }} — {{ student.class_name }}
+                </option>
+            {% endfor %}
 
-                <button type="submit">
-                    Submit Mark
-                </button>
+        </select>
 
-            </form>
+        <label>Subject</label>
 
-            <a class="back" href="{{ url_for('teacher_dashboard') }}">
-                ← Back to Dashboard
-            </a>
+        <input
+            type="text"
+            name="subject"
+            placeholder="Enter subject"
+            required
+        >
 
-        </div>
+        <label>Mark</label>
 
-    </body>
-    </html>
-    """)
+        <input
+            type="number"
+            name="mark"
+            min="0"
+            max="100"
+            step="0.01"
+            placeholder="Mark out of 100"
+            required
+        >
 
+        <button type="submit">
+            Submit Mark
+        </button>
+
+    </form>
+
+    <a class="back" href="{{ url_for('teacher_dashboard') }}">
+        ← Back to Dashboard
+    </a>
+
+</div>
+
+</body>
+</html>
+""", user=user, students=students)
 @app.route("/admin/students", methods=["GET", "POST"])
 def manage_students():
     user_id = session.get("user_id")
