@@ -105,8 +105,8 @@ class MarkEntry(db.Model):
     mark = db.Column(db.Float, nullable=True)
     status = db.Column(db.String(30), default="draft")
 
-created_at = db.Column(db.DateTime, default=datetime.utcnow)
-updated_at = db.Column(
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(
         db.DateTime,
         default=datetime.utcnow,
         onupdate=datetime.utcnow
