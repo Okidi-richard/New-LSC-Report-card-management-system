@@ -628,7 +628,8 @@ def admin_dashboard():
     <body>
         <h2>School Administration Dashboard</h2>
 
-        <a class="logout" href="{{ url_for('logout') }}">Logout</a>
+       <a class="button" href="{{ url_for('manage_students') }}">Manage Students</a>
+<a class="logout" href="{{ url_for('logout') }}">Logout</a>
 
         <div class="card">
             <h3>Teacher Mark Submissions</h3>
