@@ -24,7 +24,7 @@ from flask import (
 import pandas as pd
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 from werkzeug.security import generate_password_hash
 
 # Import core logic from the existing system
@@ -100,7 +100,9 @@ class MarkEntry(db.Model):
     class_name = db.Column(db.String(50), nullable=False)
     subject = db.Column(db.String(100), nullable=False)
 
-    mark = db.Column(db.Float)
+    formative = db.Column(db.Float, nullable=True)
+summative = db.Column(db.Float, nullable=True)
+mark = db.Column(db.Float, nullable=True)
     status = db.Column(db.String(30), default="draft")
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -139,7 +141,23 @@ class Subscription(db.Model):
 
 # Create the tables automatically when the application starts
 with app.app_context():
-    db.create_all()
+    db.create_all()    # Add new mark columns to existing databases if they do not exist
+    inspector = inspect(db.engine)
+    mark_columns = {
+        column["name"]
+        for column in inspector.get_columns("mark_entry")
+    }
+
+    with db.engine.begin() as conn:
+        if "formative" not in mark_columns:
+            conn.execute(
+                text("ALTER TABLE mark_entry ADD COLUMN formative FLOAT")
+            )
+
+        if "summative" not in mark_columns:
+            conn.execute(
+                text("ALTER TABLE mark_entry ADD COLUMN summative FLOAT")
+            )
         # Create the first school and administrator account
     school = School.query.filter_by(
         name="Safe Haven Christian High School Kalongo"
