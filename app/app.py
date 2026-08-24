@@ -509,42 +509,54 @@ def teacher_marks():
         active=True
     ).order_by(Student.class_name, Student.full_name).all()
 
-    if request.method == "POST":
+        if request.method == "POST":
         student_id = request.form.get("student_id", "").strip()
         subject = request.form.get("subject", "").strip()
-        mark_value = request.form.get("mark", "").strip()
+        formative_value = request.form.get("formative", "").strip()
+        summative_value = request.form.get("summative", "").strip()
 
-        if not student_id or not subject or not mark_value:
-            return "Please select a student, enter the subject and enter the mark.", 400
+        if not student_id or not subject or not formative_value or not summative_value:
+            return "Please select a student, enter the subject, and enter both formative and summative marks.", 400
 
         try:
-            mark = float(mark_value)
+            formative = float(formative_value)
+            summative = float(summative_value)
+        except ValueError:
+            return "Formative and summative marks must be numbers.", 400
 
-            if mark < 0 or mark > 100:
-                return "Mark must be between 0 and 100.", 400
+        if formative < 0 or formative > 100:
+            return "Formative mark must be between 0 and 100.", 400
 
-            student = db.session.get(Student, int(student_id))
+        if summative < 0 or summative > 100:
+            return "Summative mark must be between 0 and 100.", 400
 
-            if not student:
-                return "Selected student was not found.", 404
+        # Calculate the final score
+        mark = (formative + summative) / 2
 
-            # Make sure the student belongs to the same school
-            if student.school_id != user.school_id:
-                return "You cannot enter marks for this student.", 403
+        student = db.session.get(Student, int(student_id))
 
-            entry = MarkEntry(
-                teacher_id=user.id,
-                student_name=student.full_name,
-                class_name=student.class_name,
-                subject=subject,
-                mark=mark,
-                status="submitted"
-            )
+        if not student:
+            return "Selected student was not found.", 404
 
-            db.session.add(entry)
-            db.session.commit()
+        # Make sure the student belongs to the same school
+        if student.school_id != user.school_id:
+            return "You cannot enter marks for this student.", 403
 
-            return redirect(url_for("teacher_marks"))
+        entry = MarkEntry(
+            teacher_id=user.id,
+            student_name=student.full_name,
+            class_name=student.class_name,
+            subject=subject,
+            formative=formative,
+            summative=summative,
+            mark=mark,
+            status="submitted"
+        )
+
+        db.session.add(entry)
+        db.session.commit()
+
+        return redirect(url_for("teacher_marks"))
 
         except ValueError:
             return "Invalid mark or student selection.", 400
