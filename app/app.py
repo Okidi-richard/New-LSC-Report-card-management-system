@@ -760,7 +760,7 @@ if photo and photo.filename:
 
         return redirect(url_for("manage_students"))
 
-    students = Student.query.filter_by(
+        students = Student.query.filter_by(
         school_id=user.school_id,
         active=True
     ).order_by(Student.full_name.asc()).all()
