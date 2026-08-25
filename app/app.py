@@ -128,9 +128,9 @@ class Student(db.Model):
     class_name = db.Column(db.String(50), nullable=False)
     gender = db.Column(db.String(20))
 photo = db.Column(db.String(255), nullable=True)
-    school_id = db.Column(db.Integer, db.ForeignKey("school.id"), nullable=False)
-    active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+school_id = db.Column(db.Integer, db.ForeignKey("school.id"), nullable=False)
+active = db.Column(db.Boolean, default=True)
+created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class Subscription(db.Model):
