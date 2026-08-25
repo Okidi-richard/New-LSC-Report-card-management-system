@@ -759,12 +759,12 @@ if photo and photo.filename:
             db.session.commit()
 
         return redirect(url_for("manage_students"))
-        students = Student.query.filter_by(
+            students = Student.query.filter_by(
         school_id=user.school_id,
-        active=True       
-       
+        active=True
     ).order_by(Student.full_name.asc()).all()
-    return render_template_string("""    
+
+    return render_template_string("""
     <!DOCTYPE html>
     <html>
     <head>
