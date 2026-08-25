@@ -106,10 +106,10 @@ class MarkEntry(db.Model):
     formative = db.Column(db.Float, nullable=True)
     summative = db.Column(db.Float, nullable=True)
     mark = db.Column(db.Float, nullable=True)
-        teacher_comment = db.Column(
+    teacher_comment = db.Column(
         db.Text,
         nullable=True
-    )
+    )  
     status = db.Column(db.String(30), default="draft")
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
