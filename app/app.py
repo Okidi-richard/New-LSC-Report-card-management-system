@@ -5,6 +5,7 @@ Accessible browser interface for generating CBC-aligned report cards.
 """
 
 import os
+from werkzeug.utils import secure_filename
 import sys
 import zipfile
 import shutil
@@ -38,6 +39,8 @@ from report_card_system import (
 )
 
 app = Flask(__name__)
+app.config["UPLOAD_FOLDER"] = os.path.join(ROOT_DIR, "app", "outputs", "student_photos")
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 # Security
 app.secret_key = os.environ.get(
@@ -103,6 +106,10 @@ class MarkEntry(db.Model):
     formative = db.Column(db.Float, nullable=True)
     summative = db.Column(db.Float, nullable=True)
     mark = db.Column(db.Float, nullable=True)
+        teacher_comment = db.Column(
+        db.Text,
+        nullable=True
+    )
     status = db.Column(db.String(30), default="draft")
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -117,8 +124,10 @@ class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     admission_number = db.Column(db.String(50), unique=True, nullable=False)
     full_name = db.Column(db.String(150), nullable=False)
+    lin = db.Column(db.String(50), unique=True, nullable=True)
     class_name = db.Column(db.String(50), nullable=False)
     gender = db.Column(db.String(20))
+photo = db.Column(db.String(255), nullable=True)
     school_id = db.Column(db.Integer, db.ForeignKey("school.id"), nullable=False)
     active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -699,6 +708,11 @@ def teacher_marks():
 </body>
 </html>
 """, user=user, students=students)
+@app.route("/student_photo/<filename>")
+@login_required
+def student_photo(filename):
+    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+
 @app.route("/admin/students", methods=["GET", "POST"])
 def manage_students():
     user_id = session.get("user_id")
@@ -715,14 +729,27 @@ def manage_students():
         admission_number = request.form.get("admission_number", "").strip()
         full_name = request.form.get("full_name", "").strip()
         class_name = request.form.get("class_name", "").strip()
+       
         gender = request.form.get("gender", "").strip()
+        lin = request.form.get("lin", "").strip()
+photo = request.files.get("photo")
+    photo_filename = None
 
+    if photo and photo.filename:
+        original_name = secure_filename(photo.filename)
+        extension = os.path.splitext(original_name)[1].lower()
+
+        if extension in [".jpg", ".jpeg", ".png", ".webp"]:
+            photo_filename = f"{admission_number}{extension}"
+            photo.save(os.path.join(app.config["UPLOAD_FOLDER"], photo_filename))
         if admission_number and full_name and class_name:
             student = Student(
                 admission_number=admission_number,
                 full_name=full_name,
+                lin=lin,
                 class_name=class_name,
                 gender=gender,
+                photo=photo_filename,
                 school_id=user.school_id,
                 active=True
             )
@@ -810,7 +837,7 @@ def manage_students():
 
             <h3>Add Student</h3>
 
-            <form method="POST">
+           <form method="POST" enctype="multipart/form-data">
 
                 <input
                     type="text"
@@ -826,18 +853,32 @@ def manage_students():
                     required
                 >
 
-                <input
-                    type="text"
-                    name="class_name"
-                    placeholder="Class e.g. S.4"
-                    required
-                >
+             <input
+    type="text"
+    name="lin"
+    placeholder="Learner Identification Number (LIN)"
+>
+
+<input
+    type="text"
+    name="class_name"
+    placeholder="Class e.g. S.4"
+    required
+>
+
 
                 <select name="gender">
                     <option value="">Gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                 </select>
+                <label for="photo">Learner Photo</label>
+<input
+    type="file"
+    name="photo"
+    id="photo"
+    accept="image/*"
+>
 
                 <button type="submit">
                     Add Student
@@ -856,7 +897,7 @@ def manage_students():
                     <th>Student Name</th>
                     <th>Class</th>
                     <th>Gender</th>
-                </tr>
+               <th>Photo</th> </tr>
 
                 {% for student in students %}
 
@@ -865,7 +906,15 @@ def manage_students():
                     <td>{{ student.full_name }}</td>
                     <td>{{ student.class_name }}</td>
                     <td>{{ student.gender or "" }}</td>
-                </tr>
+                <td>
+    {% if student.photo %}
+        <img src="{{ url_for('student_photo', filename=student.photo) }}"
+             width="60" height="60"
+             style="object-fit: cover; border-radius: 5px;">
+    {% else %}
+        No photo
+    {% endif %}
+</td></tr>
 
                 {% endfor %}
 
