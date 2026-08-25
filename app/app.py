@@ -764,7 +764,7 @@ if photo and photo.filename:
         active=True       
        
     ).order_by(Student.full_name.asc()).all()
-    return render_template_string("""
+    return render_template_string("""    
     <!DOCTYPE html>
     <html>
     <head>
