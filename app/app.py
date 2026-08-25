@@ -733,7 +733,7 @@ def manage_students():
         gender = request.form.get("gender", "").strip()
         lin = request.form.get("lin", "").strip()
 photo = request.files.get("photo")
-    photo_filename = None
+photo_filename = None
 
     if photo and photo.filename:
         original_name = secure_filename(photo.filename)
