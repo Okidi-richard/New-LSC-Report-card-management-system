@@ -714,6 +714,7 @@ def student_photo(filename):
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
 @app.route("/admin/students", methods=["GET", "POST"])
+@login_required
 def manage_students():
     user_id = session.get("user_id")
 
@@ -729,19 +730,20 @@ def manage_students():
         admission_number = request.form.get("admission_number", "").strip()
         full_name = request.form.get("full_name", "").strip()
         class_name = request.form.get("class_name", "").strip()
-       
         gender = request.form.get("gender", "").strip()
         lin = request.form.get("lin", "").strip()
-photo = request.files.get("photo")
-photo_filename = None
 
-if photo and photo.filename:
-        original_name = secure_filename(photo.filename)
-        extension = os.path.splitext(original_name)[1].lower()
+        photo = request.files.get("photo")
+        photo_filename = None
 
-        if extension in [".jpg", ".jpeg", ".png", ".webp"]:
-            photo_filename = f"{admission_number}{extension}"
-            photo.save(os.path.join(app.config["UPLOAD_FOLDER"], photo_filename))
+        if photo and photo.filename:
+            original_name = secure_filename(photo.filename)
+            extension = os.path.splitext(original_name)[1].lower()
+
+            if extension in [".jpg", ".jpeg", ".png", ".webp"]:
+                photo_filename = f"{admission_number}{extension}"
+                photo.save(os.path.join(app.config["UPLOAD_FOLDER"], photo_filename))
+
         if admission_number and full_name and class_name:
             student = Student(
                 admission_number=admission_number,
@@ -750,17 +752,21 @@ if photo and photo.filename:
                 class_name=class_name,
                 gender=gender,
                 photo=photo_filename,
-
-        school_id=user.school_id,                
+                school_id=user.school_id,
                 active=True
             )
 
-        db.session.add(student)
-        db.session.commit()
+            db.session.add(student)
+            db.session.commit()
 
-        return redirect(url_for("manage_students"))
-    students = Student.query.filter_by(school_id=user.school_id, active=True).order_by(Student.full_name.asc()).all()
+                return redirect(url_for("manage_students"))
 
+    students = Student.query.filter_by(
+        school_id=user.school_id,
+        active=True
+    ).order_by(Student.full_name.asc()).all()
+
+    return render_template_string("""
     return render_template_string("""
     <!DOCTYPE html>
     <html>
