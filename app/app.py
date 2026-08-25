@@ -515,15 +515,14 @@ def teacher_marks():
         formative_value = request.form.get("formative", "").strip()
         summative_value = request.form.get("summative", "").strip()
 
-        if not student_id or not subject or not formative_value or not summative_value:
+                if not student_id or not subject or not formative_value or not summative_value:
             return "Please select a student, enter the subject, and enter both formative and summative marks.", 400
 
-       try:
-       formative = float(formative_value)
-       summative = float(summative_value)
-       except ValueError:
-           return "Formative and summative marks must be numbers.", 400
-
+        try:
+            formative = float(formative_value)
+            summative = float(summative_value)
+        except ValueError:
+            return "Formative and summative marks must be numbers.", 400
         if formative < 0 or formative > 100:
             return "Formative mark must be between 0 and 100.", 400
 
