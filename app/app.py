@@ -755,11 +755,12 @@ if photo and photo.filename:
                 active=True
             )
 
-            db.session.add(student)
-            db.session.commit()
+        db.session.add(student)
+        db.session.commit()
 
         return redirect(url_for("manage_students"))
-            students = Student.query.filter_by(
+
+    students = Student.query.filter_by(
         school_id=user.school_id,
         active=True
     ).order_by(Student.full_name.asc()).all()
