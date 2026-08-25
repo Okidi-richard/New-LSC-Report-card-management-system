@@ -560,12 +560,7 @@ def teacher_marks():
 
         return redirect(url_for("teacher_marks"))
 
-        except ValueError:
-            return "Invalid mark or student selection.", 400
-
-        except Exception:
-            db.session.rollback()
-            return "Unable to save the mark. Please try again.", 500
+        
 
     return render_template_string("""
 <!DOCTYPE html>
