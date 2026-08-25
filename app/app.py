@@ -714,7 +714,6 @@ def student_photo(filename):
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
 @app.route("/admin/students", methods=["GET", "POST"])
-@login_required
 def manage_students():
     user_id = session.get("user_id")
 
@@ -742,7 +741,12 @@ def manage_students():
 
             if extension in [".jpg", ".jpeg", ".png", ".webp"]:
                 photo_filename = f"{admission_number}{extension}"
-                photo.save(os.path.join(app.config["UPLOAD_FOLDER"], photo_filename))
+                photo.save(
+                    os.path.join(
+                        app.config["UPLOAD_FOLDER"],
+                        photo_filename
+                    )
+                )
 
         if admission_number and full_name and class_name:
             student = Student(
@@ -759,7 +763,7 @@ def manage_students():
             db.session.add(student)
             db.session.commit()
 
-                return redirect(url_for("manage_students"))
+            return redirect(url_for("manage_students"))
 
     students = Student.query.filter_by(
         school_id=user.school_id,
