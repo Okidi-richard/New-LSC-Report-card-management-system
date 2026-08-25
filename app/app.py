@@ -509,7 +509,7 @@ def teacher_marks():
         active=True
     ).order_by(Student.class_name, Student.full_name).all()
 
-        if request.method == "POST":
+    if request.method == "POST":
         student_id = request.form.get("student_id", "").strip()
         subject = request.form.get("subject", "").strip()
         formative_value = request.form.get("formative", "").strip()
