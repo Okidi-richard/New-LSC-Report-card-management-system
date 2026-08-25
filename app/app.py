@@ -750,7 +750,8 @@ if photo and photo.filename:
                 class_name=class_name,
                 gender=gender,
                 photo=photo_filename,
-                school_id=user.school_id,
+
+        school_id=user.school_id,                
                 active=True
             )
 
@@ -758,10 +759,10 @@ if photo and photo.filename:
             db.session.commit()
 
         return redirect(url_for("manage_students"))
-
-    students = Student.query.filter_by(
+        students = Student.query.filter_by(
         school_id=user.school_id,
-        active=True
+        active=True       
+       
     ).order_by(Student.full_name.asc()).all()
     return render_template_string("""
     <!DOCTYPE html>
