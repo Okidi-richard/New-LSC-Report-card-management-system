@@ -509,7 +509,7 @@ def teacher_marks():
         active=True
     ).order_by(Student.class_name, Student.full_name).all()
 
-        if request.method == "POST":
+    if request.method == "POST":
         student_id = request.form.get("student_id", "").strip()
         subject = request.form.get("subject", "").strip()
         formative_value = request.form.get("formative", "").strip()
@@ -529,11 +529,8 @@ def teacher_marks():
 
         if summative < 0 or summative > 100:
             return "Summative mark must be between 0 and 100.", 400
-        if formative < 0 or formative > 100:
-            return "Formative mark must be between 0 and 100.", 400
-
-        if summative < 0 or summative > 100:
-            return "Summative mark must be between 0 and 100.", 400
+        
+        
 
         # Calculate the final score
         mark = (formative + summative) / 2
