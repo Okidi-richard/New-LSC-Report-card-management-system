@@ -735,7 +735,7 @@ def manage_students():
 photo = request.files.get("photo")
 photo_filename = None
 
-    if photo and photo.filename:
+if photo and photo.filename:
         original_name = secure_filename(photo.filename)
         extension = os.path.splitext(original_name)[1].lower()
 
