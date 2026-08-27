@@ -11,6 +11,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from io import BytesIO
+from sqlalchemy import inspect, text
 
 # Ensure project root is on the path (works locally and on cloud hosts)
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -114,6 +115,7 @@ class MarkEntry(db.Model):
 class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     admission_number = db.Column(db.String(50), unique=True, nullable=False)
+    lin = db.Column(db.String(50), unique=True, nullable=True)
     full_name = db.Column(db.String(150), nullable=False)
     class_name = db.Column(db.String(50), nullable=False)
     gender = db.Column(db.String(20))
@@ -140,6 +142,14 @@ class Subscription(db.Model):
 # Create the tables automatically when the application starts
 with app.app_context():
     db.create_all()
+        inspector = inspect(db.engine)
+    columns = [column["name"] for column in inspector.get_columns("student")]
+
+    if "lin" not in columns:
+        with db.engine.begin() as connection:
+            connection.execute(
+                text("ALTER TABLE student ADD COLUMN lin VARCHAR(50)")
+            )
         # Create the first school and administrator account
     school = School.query.filter_by(
         name="Safe Haven Christian High School Kalongo"
