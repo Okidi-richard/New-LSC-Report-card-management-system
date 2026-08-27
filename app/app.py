@@ -5,7 +5,6 @@ Accessible browser interface for generating CBC-aligned report cards.
 """
 
 import os
-from werkzeug.utils import secure_filename
 import sys
 import zipfile
 import shutil
@@ -25,7 +24,7 @@ from flask import (
 import pandas as pd
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from sqlalchemy import inspect, text
+from sqlalchemy import text
 from werkzeug.security import generate_password_hash
 
 # Import core logic from the existing system
@@ -39,8 +38,6 @@ from report_card_system import (
 )
 
 app = Flask(__name__)
-app.config["UPLOAD_FOLDER"] = os.path.join(ROOT_DIR, "app", "outputs", "student_photos")
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 # Security
 app.secret_key = os.environ.get(
@@ -103,13 +100,7 @@ class MarkEntry(db.Model):
     class_name = db.Column(db.String(50), nullable=False)
     subject = db.Column(db.String(100), nullable=False)
 
-    formative = db.Column(db.Float, nullable=True)
-    summative = db.Column(db.Float, nullable=True)
-    mark = db.Column(db.Float, nullable=True)
-    teacher_comment = db.Column(
-        db.Text,
-        nullable=True
-    )  
+    mark = db.Column(db.Float)
     status = db.Column(db.String(30), default="draft")
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -124,13 +115,11 @@ class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     admission_number = db.Column(db.String(50), unique=True, nullable=False)
     full_name = db.Column(db.String(150), nullable=False)
-    lin = db.Column(db.String(50), unique=True, nullable=True)
     class_name = db.Column(db.String(50), nullable=False)
     gender = db.Column(db.String(20))
-photo = db.Column(db.String(255), nullable=True)
-school_id = db.Column(db.Integer, db.ForeignKey("school.id"), nullable=False)
-active = db.Column(db.Boolean, default=True)
-created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    school_id = db.Column(db.Integer, db.ForeignKey("school.id"), nullable=False)
+    active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class Subscription(db.Model):
@@ -150,23 +139,7 @@ class Subscription(db.Model):
 
 # Create the tables automatically when the application starts
 with app.app_context():
-    db.create_all()    # Add new mark columns to existing databases if they do not exist
-    inspector = inspect(db.engine)
-    mark_columns = {
-        column["name"]
-        for column in inspector.get_columns("mark_entry")
-    }
-
-    with db.engine.begin() as conn:
-        if "formative" not in mark_columns:
-            conn.execute(
-                text("ALTER TABLE mark_entry ADD COLUMN formative FLOAT")
-            )
-
-        if "summative" not in mark_columns:
-            conn.execute(
-                text("ALTER TABLE mark_entry ADD COLUMN summative FLOAT")
-            )
+    db.create_all()
         # Create the first school and administrator account
     school = School.query.filter_by(
         name="Safe Haven Christian High School Kalongo"
@@ -512,432 +485,96 @@ def teacher_marks():
     if not user or user.role != "teacher":
         return redirect(url_for("login"))
 
-    # Get students belonging to the teacher's school
-    students = Student.query.filter_by(
-        school_id=user.school_id,
-        active=True
-    ).order_by(Student.class_name, Student.full_name).all()
-
     if request.method == "POST":
-        student_id = request.form.get("student_id", "").strip()
-        subject = request.form.get("subject", "").strip()
-        formative_value = request.form.get("formative", "").strip()
-        summative_value = request.form.get("summative", "").strip()
-
-        if not student_id or not subject or not formative_value or not summative_value:
-            return "Please select a student, enter the subject, and enter both formative and summative marks.", 400
-
-        try:
-            formative = float(formative_value)
-            summative = float(summative_value)
-        except ValueError:
-            return "Formative and summative marks must be numbers.", 400
-
-        if formative < 0 or formative > 100:
-            return "Formative mark must be between 0 and 100.", 400
-
-        if summative < 0 or summative > 100:
-            return "Summative mark must be between 0 and 100.", 400
-        
-        
-
-        # Calculate the final score
-        mark = (formative + summative) / 2
-
-        student = db.session.get(Student, int(student_id))
-
-        if not student:
-            return "Selected student was not found.", 404
-
-        # Make sure the student belongs to the same school
-        if student.school_id != user.school_id:
-            return "You cannot enter marks for this student.", 403
-
-        entry = MarkEntry(
-            teacher_id=user.id,
-            student_name=student.full_name,
-            class_name=student.class_name,
-            subject=subject,
-            formative=formative,
-            summative=summative,
-            mark=mark,
-            status="submitted"
-        )
-
-        db.session.add(entry)
-        db.session.commit()
-
-        return redirect(url_for("teacher_marks"))
-
-        
-
-    return render_template_string("""
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Teacher Mark Entry</title>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f1f5f9;
-            margin: 0;
-            padding: 40px 20px;
-        }
-
-        .container {
-            max-width: 700px;
-            margin: auto;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.10);
-        }
-
-        h1 {
-            margin-bottom: 30px;
-            color: #111827;
-        }
-
-        label {
-            display: block;
-            font-weight: bold;
-            margin-top: 18px;
-            margin-bottom: 8px;
-        }
-
-        select,
-        input {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 13px;
-            border: 1px solid #b8b8b8;
-            border-radius: 6px;
-            font-size: 15px;
-        }
-
-        select:focus,
-        input:focus {
-            outline: none;
-            border: 2px solid #2563eb;
-        }
-
-        button {
-            width: 100%;
-            margin-top: 25px;
-            padding: 14px;
-            border: none;
-            border-radius: 6px;
-            background: #245b8f;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #1d4f7d;
-        }
-
-        .back {
-            display: inline-block;
-            margin-top: 20px;
-            color: #145ca8;
-            text-decoration: none;
-        }
-
-        .back:hover {
-            text-decoration: underline;
-        }
-    </style>
-</head>
-
-<body>
-
-<div class="container">
-
-    <h1>Teacher Mark Entry</h1>
-
-    <form method="POST">
-
-        <label>Student</label>
-
-        <select name="student_id" required>
-            <option value="">Select student</option>
-
-            {% for student in students %}
-                <option value="{{ student.id }}">
-                    {{ student.full_name }} — {{ student.class_name }}
-                </option>
-            {% endfor %}
-
-        </select>
-
-        <label>Subject</label>
-
-        <input
-            type="text"
-            name="subject"
-            placeholder="Enter subject"
-            required
-        >
-
-        <label>Mark</label>
-
-        <input
-            type="number"
-            name="mark"
-            min="0"
-            max="100"
-            step="0.01"
-            placeholder="Mark out of 100"
-            required
-        >
-
-        <button type="submit">
-            Submit Mark
-        </button>
-
-    </form>
-
-    <a class="back" href="{{ url_for('teacher_dashboard') }}">
-        ← Back to Dashboard
-    </a>
-
-</div>
-
-</body>
-</html>
-""", user=user, students=students)
-@app.route("/student_photo/<filename>")
-@login_required
-def student_photo(filename):
-    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
-
-@app.route("/admin/students", methods=["GET", "POST"])
-def manage_students():
-    user_id = session.get("user_id")
-
-    if not user_id:
-        return redirect(url_for("login"))
-
-    user = db.session.get(User, user_id)
-
-    if not user or user.role != "admin":
-        return redirect(url_for("login"))
-
-    if request.method == "POST":
-        admission_number = request.form.get("admission_number", "").strip()
-        full_name = request.form.get("full_name", "").strip()
+        student_name = request.form.get("student_name", "").strip()
         class_name = request.form.get("class_name", "").strip()
-        gender = request.form.get("gender", "").strip()
-        lin = request.form.get("lin", "").strip()
+        subject = request.form.get("subject", "").strip()
+        mark = request.form.get("mark", "").strip()
 
-        photo = request.files.get("photo")
-        photo_filename = None
-
-        if photo and photo.filename:
-            original_name = secure_filename(photo.filename)
-            extension = os.path.splitext(original_name)[1].lower()
-
-            if extension in [".jpg", ".jpeg", ".png", ".webp"]:
-                photo_filename = f"{admission_number}{extension}"
-                photo.save(
-                    os.path.join(
-                        app.config["UPLOAD_FOLDER"],
-                        photo_filename
-                    )
-                )
-
-        if admission_number and full_name and class_name:
-            student = Student(
-                admission_number=admission_number,
-                full_name=full_name,
-                lin=lin,
+        if student_name and class_name and subject and mark:
+            entry = MarkEntry(
+                teacher_id=user.id,
+                student_name=student_name,
                 class_name=class_name,
-                gender=gender,
-                photo=photo_filename,
-                school_id=user.school_id,
-                active=True
+                subject=subject,
+                mark=float(mark),
+                status="submitted"
             )
 
-            db.session.add(student)
+            db.session.add(entry)
             db.session.commit()
 
-            return redirect(url_for("manage_students"))
+            flash("Mark submitted successfully.", "success")
 
-    students = Student.query.filter_by(
-        school_id=user.school_id,
-        active=True
-    ).order_by(Student.full_name.asc()).all()
-
-    return render_template_string("""
     return render_template_string("""
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Manage Students</title>
-
+        <title>Enter Marks</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
             body {
                 font-family: Arial, sans-serif;
                 background: #f1f5f9;
-                padding: 30px;
+                padding: 20px;
             }
-
-            .container {
-                max-width: 1000px;
+            .card {
+                max-width: 600px;
                 margin: auto;
                 background: white;
-                padding: 30px;
-                border-radius: 10px;
+                padding: 25px;
+                border-radius: 12px;
             }
-
-            input, select {
-                padding: 10px;
-                margin: 5px;
-                width: 20%;
+            input, button {
+                width: 100%;
+                padding: 13px;
+                margin: 8px 0;
+                box-sizing: border-box;
             }
-
             button {
-                padding: 10px 20px;
-                background: #1d4f82;
+                background: #174a7c;
                 color: white;
                 border: none;
-                border-radius: 5px;
-                cursor: pointer;
+                border-radius: 6px;
             }
-
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 25px;
-            }
-
-            th, td {
-                padding: 10px;
-                border-bottom: 1px solid #ddd;
-                text-align: left;
-            }
-
-            th {
-                background: #1d4f82;
-                color: white;
-            }
-
-            a {
-                color: #1d4f82;
+            .back {
+                display: block;
+                margin-top: 15px;
             }
         </style>
     </head>
-
     <body>
+        <div class="card">
+            <h2>Teacher Mark Entry</h2>
 
-        <div class="container">
+            <form method="POST">
+                <input name="student_name"
+                       placeholder="Student name" required>
 
-            <h2>Manage Students</h2>
+                <input name="class_name"
+                       placeholder="Class e.g. S.4" required>
 
-            <p>
-                <a href="{{ url_for('admin_dashboard') }}">
-                    ← Back to Administration Dashboard
-                </a>
-            </p>
+                <input name="subject"
+                       placeholder="Subject" required>
 
-            <h3>Add Student</h3>
+                <input name="mark"
+                       type="number"
+                       min="0"
+                       max="100"
+                       step="0.01"
+                       placeholder="Mark out of 100"
+                       required>
 
-           <form method="POST" enctype="multipart/form-data">
-
-                <input
-                    type="text"
-                    name="admission_number"
-                    placeholder="Admission Number"
-                    required
-                >
-
-                <input
-                    type="text"
-                    name="full_name"
-                    placeholder="Student Full Name"
-                    required
-                >
-
-             <input
-    type="text"
-    name="lin"
-    placeholder="Learner Identification Number (LIN)"
->
-
-<input
-    type="text"
-    name="class_name"
-    placeholder="Class e.g. S.4"
-    required
->
-
-
-                <select name="gender">
-                    <option value="">Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                </select>
-                <label for="photo">Learner Photo</label>
-<input
-    type="file"
-    name="photo"
-    id="photo"
-    accept="image/*"
->
-
-                <button type="submit">
-                    Add Student
-                </button>
-
+                <button type="submit">Submit Mark</button>
             </form>
 
-            <h3>Registered Students</h3>
-
-            {% if students %}
-
-            <table>
-
-                <tr>
-                    <th>Admission Number</th>
-                    <th>Student Name</th>
-                    <th>Class</th>
-                    <th>Gender</th>
-               <th>Photo</th> </tr>
-
-                {% for student in students %}
-
-                <tr>
-                    <td>{{ student.admission_number }}</td>
-                    <td>{{ student.full_name }}</td>
-                    <td>{{ student.class_name }}</td>
-                    <td>{{ student.gender or "" }}</td>
-                <td>
-    {% if student.photo %}
-        <img src="{{ url_for('student_photo', filename=student.photo) }}"
-             width="60" height="60"
-             style="object-fit: cover; border-radius: 5px;">
-    {% else %}
-        No photo
-    {% endif %}
-</td></tr>
-
-                {% endfor %}
-
-            </table>
-
-            {% else %}
-
-            <p>No students have been registered yet.</p>
-
-            {% endif %}
-
+            <a class="back" href="{{ url_for('teacher_dashboard') }}">
+                ← Back to Dashboard
+            </a>
         </div>
-
     </body>
     </html>
-    """, students=students)
+    """)
 
 
 @app.route("/admin/dashboard")
