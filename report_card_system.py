@@ -313,6 +313,7 @@ def build_report_card(
     report_date: str,
     output_path: str = None,
 photo_path: str = None
+):
     """Generate a single PDF report card."""
     doc = SimpleDocTemplate(
         output_path,
