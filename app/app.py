@@ -711,7 +711,7 @@ def manage_students():
     if request.method == "POST":
         admission_number = request.form.get("admission_number", "").strip()
         lin = request.form.get("lin", "").strip() or None
-               full_name = request.form.get("full_name", "").strip()
+        full_name = request.form.get("full_name", "").strip()
         class_name = request.form.get("class_name", "").strip()
         gender = request.form.get("gender", "").strip()
 
