@@ -682,7 +682,187 @@ def admin_dashboard():
 # ADMINISTRATION MONITORING
 # ==============================
 
+@app.route("/admin/students", methods=["GET", "POST"])
+def manage_students():
+    user_id = session.get("user_id")
 
+    if not user_id:
+        return redirect(url_for("login"))
+
+    user = db.session.get(User, user_id)
+
+    if not user or user.role != "admin":
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        admission_number = request.form.get("admission_number", "").strip()
+        full_name = request.form.get("full_name", "").strip()
+        class_name = request.form.get("class_name", "").strip()
+        gender = request.form.get("gender", "").strip()
+
+        if admission_number and full_name and class_name:
+            existing = Student.query.filter_by(
+                admission_number=admission_number,
+                school_id=user.school_id
+            ).first()
+
+            if not existing:
+                student = Student(
+                    admission_number=admission_number,
+                    full_name=full_name,
+                    class_name=class_name,
+                    gender=gender,
+                    school_id=user.school_id,
+                    active=True
+                )
+
+                db.session.add(student)
+                db.session.commit()
+
+        return redirect(url_for("manage_students"))
+
+    students = Student.query.filter_by(
+        school_id=user.school_id,
+        active=True
+    ).order_by(Student.full_name.asc()).all()
+
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Manage Students</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 30px;
+                background: #f4f6f8;
+            }
+
+            .container {
+                max-width: 1100px;
+                margin: auto;
+                background: white;
+                padding: 25px;
+                border-radius: 10px;
+            }
+
+            h2 {
+                color: #174a7c;
+            }
+
+            input, select {
+                padding: 10px;
+                margin: 5px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+            }
+
+            button {
+                padding: 10px 18px;
+                background: #174a7c;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 25px;
+            }
+
+            th, td {
+                padding: 10px;
+                border-bottom: 1px solid #ddd;
+                text-align: left;
+            }
+
+            th {
+                background: #174a7c;
+                color: white;
+            }
+
+            .back {
+                display: inline-block;
+                margin-bottom: 20px;
+                text-decoration: none;
+                color: #174a7c;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="container">
+
+            <a class="back" href="{{ url_for('admin_dashboard') }}">
+                ← Back to Dashboard
+            </a>
+
+            <h2>Student Management</h2>
+
+            <form method="POST">
+
+                <input
+                    type="text"
+                    name="admission_number"
+                    placeholder="Admission Number"
+                    required
+                >
+
+                <input
+                    type="text"
+                    name="full_name"
+                    placeholder="Student Full Name"
+                    required
+                >
+
+                <input
+                    type="text"
+                    name="class_name"
+                    placeholder="Class (e.g. S.1)"
+                    required
+                >
+
+                <select name="gender">
+                    <option value="">Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+
+                <button type="submit">Add Student</button>
+
+            </form>
+
+            <table>
+                <tr>
+                    <th>No.</th>
+                    <th>Admission Number</th>
+                    <th>Student Name</th>
+                    <th>Class</th>
+                    <th>Gender</th>
+                </tr>
+
+                {% for student in students %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ student.admission_number }}</td>
+                    <td>{{ student.full_name }}</td>
+                    <td>{{ student.class_name }}</td>
+                    <td>{{ student.gender or "" }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5">No students registered yet.</td>
+                </tr>
+                {% endfor %}
+
+            </table>
+
+        </div>
+    </body>
+    </html>
+    """, students=students)
 if __name__ == "__main__":
     # Ensure a template exists
     default_template = TEMPLATE_FOLDER / "marks_entry_template.xlsx"
