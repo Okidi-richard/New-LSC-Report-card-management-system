@@ -706,11 +706,10 @@ def manage_students():
 
     if request.method == "POST":
         admission_number = request.form.get("admission_number", "").strip()
-                lin = request.form.get("lin", "").strip() or None
+        lin = request.form.get("lin", "").strip() or None
         full_name = request.form.get("full_name", "").strip()
         class_name = request.form.get("class_name", "").strip()
         gender = request.form.get("gender", "").strip()
-
         if admission_number and full_name and class_name:
             existing = Student.query.filter_by(
                 admission_number=admission_number,
