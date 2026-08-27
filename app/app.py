@@ -706,6 +706,7 @@ def manage_students():
 
     if request.method == "POST":
         admission_number = request.form.get("admission_number", "").strip()
+                lin = request.form.get("lin", "").strip() or None
         full_name = request.form.get("full_name", "").strip()
         class_name = request.form.get("class_name", "").strip()
         gender = request.form.get("gender", "").strip()
@@ -719,6 +720,7 @@ def manage_students():
             if not existing:
                 student = Student(
                     admission_number=admission_number,
+                                lin=lin,
                     full_name=full_name,
                     class_name=class_name,
                     gender=gender,
@@ -819,7 +821,11 @@ def manage_students():
                     placeholder="Admission Number"
                     required
                 >
-
+        <input
+            type="text"
+            name="lin"
+            placeholder="Student LIN"
+        >
                 <input
                     type="text"
                     name="full_name"
@@ -848,6 +854,8 @@ def manage_students():
                 <tr>
                     <th>No.</th>
                     <th>Admission Number</th>
+<th>Student LIN</th>
+
                     <th>Student Name</th>
                     <th>Class</th>
                     <th>Gender</th>
@@ -857,13 +865,14 @@ def manage_students():
                 <tr>
                     <td>{{ loop.index }}</td>
                     <td>{{ student.admission_number }}</td>
+                    <td>{{ student.lin or "" }}</td>
                     <td>{{ student.full_name }}</td>
                     <td>{{ student.class_name }}</td>
                     <td>{{ student.gender or "" }}</td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="5">No students registered yet.</td>
+                    <td colspan="6">No students registered yet.</td>
                 </tr>
                 {% endfor %}
 
