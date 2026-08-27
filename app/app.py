@@ -62,6 +62,18 @@ app.config["STUDENT_PHOTO_FOLDER"] = os.path.join(ROOT_DIR, "app", "static", "st
 os.makedirs(app.config["STUDENT_PHOTO_FOLDER"], exist_ok=True)
 # Initialize database and login manager
 db = SQLAlchemy(app)
+
+# Add photo column to existing student table if it is missing
+with app.app_context():
+    inspector = inspect(db.engine)
+    student_columns = [column["name"] for column in inspector.get_columns("student")]
+
+    if "photo" not in student_columns:
+        with db.engine.begin() as connection:
+            connection.execute(
+                text("ALTER TABLE student ADD COLUMN photo VARCHAR(255)")
+            )
+
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 @login_manager.user_loader
