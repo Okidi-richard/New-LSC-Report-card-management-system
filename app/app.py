@@ -22,6 +22,7 @@ from flask import (
     Flask, render_template, render_template_string,request, redirect, url_for,
     flash, send_file, send_from_directory, jsonify, session
 )
+from werkzeug.utils import secure_filename
 import pandas as pd
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -57,6 +58,8 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Upload limit: 16 MB
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
+app.config["STUDENT_PHOTO_FOLDER"] = os.path.join(ROOT_DIR, "app", "static", "student_photos")
+os.makedirs(app.config["STUDENT_PHOTO_FOLDER"], exist_ok=True)
 # Initialize database and login manager
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -119,6 +122,7 @@ class Student(db.Model):
     full_name = db.Column(db.String(150), nullable=False)
     class_name = db.Column(db.String(50), nullable=False)
     gender = db.Column(db.String(20))
+    photo = db.Column(db.String(255), nullable=True)
     school_id = db.Column(db.Integer, db.ForeignKey("school.id"), nullable=False)
     active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -707,9 +711,18 @@ def manage_students():
     if request.method == "POST":
         admission_number = request.form.get("admission_number", "").strip()
         lin = request.form.get("lin", "").strip() or None
-        full_name = request.form.get("full_name", "").strip()
+               full_name = request.form.get("full_name", "").strip()
         class_name = request.form.get("class_name", "").strip()
         gender = request.form.get("gender", "").strip()
+
+        photo = None
+        photo_file = request.files.get("photo")
+
+        if photo_file and photo_file.filename:
+            filename = secure_filename(photo_file.filename)
+            photo_file.save(os.path.join(app.config["STUDENT_PHOTO_FOLDER"], filename))
+            photo = filename
+
         if admission_number and full_name and class_name:
             existing = Student.query.filter_by(
                 admission_number=admission_number,
@@ -723,6 +736,7 @@ def manage_students():
                     full_name=full_name,
                     class_name=class_name,
                     gender=gender,
+                    photo=photo,
                     school_id=user.school_id,
                     active=True
                 )
@@ -812,7 +826,7 @@ def manage_students():
 
             <h2>Student Management</h2>
 
-            <form method="POST">
+           <form method="POST" enctype="multipart/form-data">
 
                 <input
                     type="text"
@@ -832,6 +846,11 @@ def manage_students():
                     required
                 >
 
+               <input
+    type="file"
+    name="photo"
+    accept="image/*"
+> 
                 <input
                     type="text"
                     name="class_name"
@@ -856,6 +875,7 @@ def manage_students():
 <th>Student LIN</th>
 
                     <th>Student Name</th>
+                    <th>Photo</th>
                     <th>Class</th>
                     <th>Gender</th>
                 </tr>
@@ -866,12 +886,21 @@ def manage_students():
                     <td>{{ student.admission_number }}</td>
                     <td>{{ student.lin or "" }}</td>
                     <td>{{ student.full_name }}</td>
+                    <td>
+    {% if student.photo %}
+        <img src="{{ url_for('static', filename='student_photos/' + student.photo) }}"
+             width="50" height="50"
+             style="object-fit: cover; border-radius: 5px;">
+    {% else %}
+        No photo
+    {% endif %}
+</td>
                     <td>{{ student.class_name }}</td>
                     <td>{{ student.gender or "" }}</td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6">No students registered yet.</td>
+                    <td colspan="7">No students registered yet.</td>
                 </tr>
                 {% endfor %}
 
