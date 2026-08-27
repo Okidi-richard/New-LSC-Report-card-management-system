@@ -142,7 +142,7 @@ class Subscription(db.Model):
 # Create the tables automatically when the application starts
 with app.app_context():
     db.create_all()
-        inspector = inspect(db.engine)
+    inspector = inspect(db.engine)
     columns = [column["name"] for column in inspector.get_columns("student")]
 
     if "lin" not in columns:
