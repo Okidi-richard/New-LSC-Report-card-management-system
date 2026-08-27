@@ -6,6 +6,7 @@ Then open:  http://127.0.0.1:5000
 """
 
 import sys
+import os
 from pathlib import Path
 
 # Make Flask (user install) and the project root importable
@@ -26,4 +27,4 @@ if __name__ == "__main__":
     print()
     print("  Press Ctrl+C to stop the server.")
     print("=" * 60)
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
