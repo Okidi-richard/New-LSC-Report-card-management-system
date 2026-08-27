@@ -311,8 +311,8 @@ def build_report_card(
     term: str,
     year: str,
     report_date: str,
-    output_path: str
-):
+    output_path: str = None,
+photo_path: str = None
     """Generate a single PDF report card."""
     doc = SimpleDocTemplate(
         output_path,
@@ -357,8 +357,13 @@ def build_report_card(
         clean(student.get("First Name", "")),
         clean(student.get("Other Names", ""))
     ])).strip().upper()
+# Add student photo
+photo_element = ""
+if photo_path and os.path.exists(photo_path):
+    photo_element = Image(photo_path, width=25*mm, height=30*mm)
 
-    particulars = [
+particulars = [
+   [photo_element, ""],
         [Paragraph("<b>Name:</b>", styles["NormalSmall"]),
          Paragraph(full_name, styles["NormalSmall"]),
          Paragraph("<b>Admission No:</b>", styles["NormalSmall"]),
@@ -625,7 +630,8 @@ def generate_all_reports(excel_path: str, output_dir: str = "generated_reports")
             term=term,
             year=year,
             report_date=report_date,
-            output_path=out_path
+            output_path=out_path,
+            photo_path=student.get("Photo")
         )
         print(f"  ✓ {filename}")
         generated.append(out_path)
