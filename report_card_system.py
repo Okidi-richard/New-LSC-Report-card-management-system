@@ -360,9 +360,11 @@ photo_path: str = None
     ])).strip().upper()
 # Add student photo
 photo_element = ""
-if photo_path and os.path.exists(photo_path):
-    photo_element = Image(photo_path, width=25*mm, height=30*mm)
+   
 
+    if photo_path and os.path.exists(photo_path):
+        photo_element = Image(photo_path, width=25*mm, height=30*mm)
+  
 particulars = [
    [photo_element, ""],
         [Paragraph("<b>Name:</b>", styles["NormalSmall"]),
