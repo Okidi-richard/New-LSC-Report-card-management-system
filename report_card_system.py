@@ -358,14 +358,14 @@ photo_path: str = None
         clean(student.get("First Name", "")),
         clean(student.get("Other Names", ""))
     ])).strip().upper()
-# Add student photo
-photo_element = ""
+    # Add student photo
+    photo_element = ""
    
 
     if photo_path and os.path.exists(photo_path):
-        photo_element = Image(photo_path, width=25*mm, height=30*mm)
+        photo_element = Image(photo_path, width=25*mm, height=30*mm)  
   
-particulars = [
+    particulars = [
    [photo_element, ""],
         [Paragraph("<b>Name:</b>", styles["NormalSmall"]),
          Paragraph(full_name, styles["NormalSmall"]),
