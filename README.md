@@ -103,3 +103,31 @@ uganda_report_card_system/
 ---
 
 **Generated with care for Uganda’s education system.**
+
+
+## Merged school-management workflow
+
+The web application now combines the administrator dashboard and report-card workflow:
+
+1. Administrator logs in.
+2. Administrator registers learners, including LIN and optional photo.
+3. Administrator creates teacher accounts.
+4. Teachers select registered learners and enter formative/summative marks.
+5. Final scores are calculated automatically.
+6. The administrator sees recent mark activity.
+7. The administrator can generate an individual PDF report card directly from the central database.
+8. Report cards include learner photo (when uploaded), LIN, subject teacher name, marks, grade, comments and attendance.
+9. The existing Excel batch-generation workflow remains available.
+
+### Render start command
+`gunicorn app.app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120`
+
+### Recommended Render environment variables
+`DATABASE_URL`, `SECRET_KEY`, `SCHOOL_NAME`, `SCHOOL_MOTTO`, `SCHOOL_ADDRESS`, `SCHOOL_PHONE`, `SCHOOL_EMAIL`, `SCHOOL_DISTRICT`, `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `SCHOOL_TERM`, `ACADEMIC_YEAR`.
+
+The default administrator credentials in code are only for initial/local use. Set strong Render environment variables before production.
+
+
+### Uganda-aligned report-card presentation
+
+The report-card academic table labels formative assessment explicitly as **Formative (AOI + CA)** and keeps **Summative** separate. The software treats the exact assessment weighting/calculation as configurable rather than claiming that the generated school report card is an official UNEB certificate.

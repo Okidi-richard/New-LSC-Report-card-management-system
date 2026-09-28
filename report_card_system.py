@@ -39,12 +39,12 @@ from reportlab.pdfbase.ttfonts import TTFont
 # ============================================================
 
 SCHOOL_CONFIG = {
-    "name": "ST. MARY'S SECONDARY SCHOOL",
-    "motto": "Knowledge is Power",
-    "address": "P.O. Box 1234, Kampala, Uganda",
-    "phone": "+256 700 000000",
-    "email": "info@stmaryss.ac.ug",
-    "district": "Kampala",
+    "name": os.environ.get("SCHOOL_NAME", "Safe Haven Christian High School Kalongo"),
+    "motto": os.environ.get("SCHOOL_MOTTO", "Achieving excellence together"),
+    "address": os.environ.get("SCHOOL_ADDRESS", "Kalongo Town Council, Agago District, Uganda"),
+    "phone": os.environ.get("SCHOOL_PHONE", ""),
+    "email": os.environ.get("SCHOOL_EMAIL", ""),
+    "district": os.environ.get("SCHOOL_DISTRICT", "Agago District"),
     "logo_path": None,  # Put path to school logo PNG/JPG if available
 }
 
@@ -119,10 +119,11 @@ def create_excel_template(output_path: str = "templates/marks_entry_template.xls
         ["", ""],
         ["INSTRUCTIONS", ""],
         ["1. Fill the 'Students' sheet with learner details.", ""],
-        ["2. Fill the 'Marks' sheet with Formative (out of 100) and Summative (out of 100) scores.", ""],
-        ["3. Leave blank if a subject was not taken by the learner.", ""],
-        ["4. Run the system: python report_card_system.py --excel templates/marks_entry_template.xlsx", ""],
-        ["5. Generated PDFs will appear in the 'generated_reports' folder.", ""],
+        ["2. Enter AOI and CA separately; Formative (AOI + CA) is derived from their average.", ""],
+        ["3. Enter the Summative score separately.", ""],
+        ["4. Leave blank if a subject was not taken by the learner.", ""],
+        ["5. Run the system: python report_card_system.py --excel templates/marks_entry_template.xlsx", ""],
+        ["6. Generated PDFs will appear in the 'generated_reports' folder.", ""],
     ]
     for row in settings_data:
         ws_settings.append(row)
@@ -174,59 +175,61 @@ def create_excel_template(output_path: str = "templates/marks_entry_template.xls
 
     # ----- Sheet 3: Marks -----
     ws_marks = wb.create_sheet("Marks")
-    mark_headers = ["Admission No", "Subject", "Formative (out of 100)", "Summative (out of 100)", "Teacher Comment (optional)"]
+    mark_headers = ["Admission No", "Subject", "AOI (out of 100)", "CA (out of 100)", "Formative (AOI + CA)", "Summative (out of 100)", "Teacher Comment (optional)"]
     ws_marks.append(mark_headers)
 
     # Sample marks for the three students
     sample_marks = [
         # Amina Nakato S3
-        ["S2024/001", "English", 78, 82, "Good command of language"],
-        ["S2024/001", "Mathematics", 65, 71, "Needs more practice on algebra"],
-        ["S2024/001", "Biology", 85, 88, "Excellent practical skills"],
-        ["S2024/001", "Chemistry", 72, 76, "Good understanding of concepts"],
-        ["S2024/001", "Physics", 68, 74, "Improving steadily"],
-        ["S2024/001", "Geography", 80, 84, "Very good map work"],
-        ["S2024/001", "History & Political Education", 75, 79, "Good analysis"],
-        ["S2024/001", "Religious Education", 88, 90, "Outstanding"],
-        ["S2024/001", "Entrepreneurship", 82, 85, "Creative ideas"],
-        ["S2024/001", "ICT", 90, 92, "Excellent digital skills"],
+        ["S2024/001", "English", 78, 78, "=AVERAGE(C2:D2)", 82, "Good command of language"],
+        ["S2024/001", "Mathematics", 65, 65, "=AVERAGE(C3:D3)", 71, "Needs more practice on algebra"],
+        ["S2024/001", "Biology", 85, 85, "=AVERAGE(C4:D4)", 88, "Excellent practical skills"],
+        ["S2024/001", "Chemistry", 72, 72, "=AVERAGE(C5:D5)", 76, "Good understanding of concepts"],
+        ["S2024/001", "Physics", 68, 68, "=AVERAGE(C6:D6)", 74, "Improving steadily"],
+        ["S2024/001", "Geography", 80, 80, "=AVERAGE(C7:D7)", 84, "Very good map work"],
+        ["S2024/001", "History & Political Education", 75, 75, "=AVERAGE(C8:D8)", 79, "Good analysis"],
+        ["S2024/001", "Religious Education", 88, 88, "=AVERAGE(C9:D9)", 90, "Outstanding"],
+        ["S2024/001", "Entrepreneurship", 82, 82, "=AVERAGE(C10:D10)", 85, "Creative ideas"],
+        ["S2024/001", "ICT", 90, 90, "=AVERAGE(C11:D11)", 92, "Excellent digital skills"],
         # David Okello
-        ["S2024/015", "English", 55, 62, "Needs improvement in composition"],
-        ["S2024/015", "Mathematics", 48, 55, "Struggles with problem solving"],
-        ["S2024/015", "Biology", 70, 75, "Good effort"],
-        ["S2024/015", "Chemistry", 68, 72, "Satisfactory"],
-        ["S2024/015", "Physics", 62, 68, "Can do better"],
-        ["S2024/015", "Geography", 58, 65, "Average performance"],
-        ["S2024/015", "History & Political Education", 60, 66, "Fair"],
-        ["S2024/015", "Religious Education", 72, 78, "Good"],
-        ["S2024/015", "Entrepreneurship", 65, 70, "Shows interest"],
-        ["S2024/015", "ICT", 75, 80, "Competent"],
+        ["S2024/015", "English", 55, 55, "=AVERAGE(C12:D12)", 62, "Needs improvement in composition"],
+        ["S2024/015", "Mathematics", 48, 48, "=AVERAGE(C13:D13)", 55, "Struggles with problem solving"],
+        ["S2024/015", "Biology", 70, 70, "=AVERAGE(C14:D14)", 75, "Good effort"],
+        ["S2024/015", "Chemistry", 68, 68, "=AVERAGE(C15:D15)", 72, "Satisfactory"],
+        ["S2024/015", "Physics", 62, 62, "=AVERAGE(C16:D16)", 68, "Can do better"],
+        ["S2024/015", "Geography", 58, 58, "=AVERAGE(C17:D17)", 65, "Average performance"],
+        ["S2024/015", "History & Political Education", 60, 60, "=AVERAGE(C18:D18)", 66, "Fair"],
+        ["S2024/015", "Religious Education", 72, 72, "=AVERAGE(C19:D19)", 78, "Good"],
+        ["S2024/015", "Entrepreneurship", 65, 65, "=AVERAGE(C20:D20)", 70, "Shows interest"],
+        ["S2024/015", "ICT", 75, 75, "=AVERAGE(C21:D21)", 80, "Competent"],
         # Grace Namukasa S2
-        ["S2024/028", "English", 88, 91, "Excellent"],
-        ["S2024/028", "Mathematics", 92, 95, "Top performer"],
-        ["S2024/028", "Biology", 85, 89, "Very strong"],
-        ["S2024/028", "Chemistry", 80, 86, "Good practicals"],
-        ["S2024/028", "Physics", 78, 84, "Solid understanding"],
-        ["S2024/028", "Geography", 90, 93, "Outstanding"],
-        ["S2024/028", "History & Political Education", 82, 88, "Very good"],
-        ["S2024/028", "Kiswahili", 75, 80, "Good progress"],
-        ["S2024/028", "Religious Education", 95, 97, "Exceptional"],
-        ["S2024/028", "Entrepreneurship", 88, 90, "Innovative"],
-        ["S2024/028", "Physical Education", 90, 92, "Active and disciplined"],
-        ["S2024/028", "ICT", 94, 96, "Excellent"],
+        ["S2024/028", "English", 88, 88, "=AVERAGE(C22:D22)", 91, "Excellent"],
+        ["S2024/028", "Mathematics", 92, 92, "=AVERAGE(C23:D23)", 95, "Top performer"],
+        ["S2024/028", "Biology", 85, 85, "=AVERAGE(C24:D24)", 89, "Very strong"],
+        ["S2024/028", "Chemistry", 80, 80, "=AVERAGE(C25:D25)", 86, "Good practicals"],
+        ["S2024/028", "Physics", 78, 78, "=AVERAGE(C26:D26)", 84, "Solid understanding"],
+        ["S2024/028", "Geography", 90, 90, "=AVERAGE(C27:D27)", 93, "Outstanding"],
+        ["S2024/028", "History & Political Education", 82, 82, "=AVERAGE(C28:D28)", 88, "Very good"],
+        ["S2024/028", "Kiswahili", 75, 75, "=AVERAGE(C29:D29)", 80, "Good progress"],
+        ["S2024/028", "Religious Education", 95, 95, "=AVERAGE(C30:D30)", 97, "Exceptional"],
+        ["S2024/028", "Entrepreneurship", 88, 88, "=AVERAGE(C31:D31)", 90, "Innovative"],
+        ["S2024/028", "Physical Education", 90, 90, "=AVERAGE(C32:D32)", 92, "Active and disciplined"],
+        ["S2024/028", "ICT", 94, 94, "=AVERAGE(C33:D33)", 96, "Excellent"],
     ]
     for m in sample_marks:
         ws_marks.append(m)
 
-    for col in range(1, 6):
+    for col in range(1, 8):
         cell = ws_marks.cell(1, col)
         cell.font = Font(bold=True, color="FFFFFF")
         cell.fill = PatternFill("solid", fgColor="1F4E79")
     ws_marks.column_dimensions["A"].width = 14
     ws_marks.column_dimensions["B"].width = 28
-    ws_marks.column_dimensions["C"].width = 22
-    ws_marks.column_dimensions["D"].width = 24
-    ws_marks.column_dimensions["E"].width = 30
+    ws_marks.column_dimensions["C"].width = 18
+    ws_marks.column_dimensions["D"].width = 18
+    ws_marks.column_dimensions["E"].width = 22
+    ws_marks.column_dimensions["F"].width = 20
+    ws_marks.column_dimensions["G"].width = 34
 
     # ----- Sheet 4: Grading Guide -----
     ws_guide = wb.create_sheet("Grading Guide")
@@ -311,8 +314,7 @@ def build_report_card(
     term: str,
     year: str,
     report_date: str,
-    output_path: str = None,
-photo_path: str = None
+    output_path: str
 ):
     """Generate a single PDF report card."""
     doc = SimpleDocTemplate(
@@ -358,44 +360,57 @@ photo_path: str = None
         clean(student.get("First Name", "")),
         clean(student.get("Other Names", ""))
     ])).strip().upper()
-    # Add student photo
-    photo_element = ""
-   
 
+    # Optional learner photo.
+    photo_cell = Paragraph("<b>PHOTO</b>", styles["NormalTiny"])
+    photo_path = clean(student.get("Photo Path", "")) or clean(student.get("photo_path", ""))
     if photo_path and os.path.exists(photo_path):
-        photo_element = Image(photo_path, width=25*mm, height=30*mm)  
-  
+        try:
+            photo_cell = Image(photo_path, width=24*mm, height=27*mm)
+        except Exception:
+            pass
+
     particulars = [
-   [photo_element, ""],
-        [Paragraph("<b>Name:</b>", styles["NormalSmall"]),
-         Paragraph(full_name, styles["NormalSmall"]),
-         Paragraph("<b>Admission No:</b>", styles["NormalSmall"]),
-         Paragraph(clean(student.get("Admission No", "")), styles["NormalSmall"])],
-        [Paragraph("<b>Class:</b>", styles["NormalSmall"]),
-         Paragraph(f"{clean(student.get('Class', ''))} {clean(student.get('Stream', ''))}", styles["NormalSmall"]),
-         Paragraph("<b>Sex:</b>", styles["NormalSmall"]),
-         Paragraph(clean(student.get("Sex", "")), styles["NormalSmall"])],
-        [Paragraph("<b>Date of Birth:</b>", styles["NormalSmall"]),
-         Paragraph(clean(student.get("Date of Birth", "")), styles["NormalSmall"]),
-         Paragraph("<b>Parent/Guardian:</b>", styles["NormalSmall"]),
-         Paragraph(clean(student.get("Parent/Guardian", "")), styles["NormalSmall"])],
-        [Paragraph("<b>Contact:</b>", styles["NormalSmall"]),
-         Paragraph(clean(student.get("Contact", "")), styles["NormalSmall"]),
-         Paragraph("<b>Report Date:</b>", styles["NormalSmall"]),
-         Paragraph(report_date, styles["NormalSmall"])],
+        [Paragraph("<b>Name:</b>", styles["NormalTiny"]),
+         Paragraph(full_name, styles["NormalTiny"]),
+         Paragraph("<b>Admission No:</b>", styles["NormalTiny"]),
+         Paragraph(clean(student.get("Admission No", "")), styles["NormalTiny"]),
+         photo_cell],
+        [Paragraph("<b>LIN:</b>", styles["NormalTiny"]),
+         Paragraph(clean(student.get("LIN", "")) or "—", styles["NormalTiny"]),
+         Paragraph("<b>Class / Stream:</b>", styles["NormalTiny"]),
+         Paragraph(f"{clean(student.get('Class', ''))} {clean(student.get('Stream', ''))}", styles["NormalTiny"]),
+         ""],
+        [Paragraph("<b>Sex:</b>", styles["NormalTiny"]),
+         Paragraph(clean(student.get("Sex", "")), styles["NormalTiny"]),
+         Paragraph("<b>Date of Birth:</b>", styles["NormalTiny"]),
+         Paragraph(clean(student.get("Date of Birth", "")), styles["NormalTiny"]),
+         ""],
+        [Paragraph("<b>Parent/Guardian:</b>", styles["NormalTiny"]),
+         Paragraph(clean(student.get("Parent/Guardian", "")), styles["NormalTiny"]),
+         Paragraph("<b>Contact:</b>", styles["NormalTiny"]),
+         Paragraph(clean(student.get("Contact", "")), styles["NormalTiny"]),
+         ""],
+        [Paragraph("<b>Report Date:</b>", styles["NormalTiny"]),
+         Paragraph(report_date, styles["NormalTiny"]),
+         "", "", ""],
     ]
 
-    t = Table(particulars, colWidths=[28*mm, 55*mm, 32*mm, 55*mm])
+    t = Table(particulars, colWidths=[27*mm, 52*mm, 30*mm, 52*mm, 25*mm], rowHeights=[None, None, None, None, None])
     t.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("TOPPADDING", (0, 0), (-1, -1), 2),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
         ("LEFTPADDING", (0, 0), (-1, -1), 2),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 2),
         ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F5F8FC")),
         ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#1F4E79")),
+        ("GRID", (0, 0), (3, -1), 0.3, colors.HexColor("#C7D3E0")),
+        ("SPAN", (4, 0), (4, 4)),
+        ("ALIGN", (4, 0), (4, 4), "CENTER"),
     ]))
     story.append(t)
-    story.append(Spacer(1, 5 * mm))
+    story.append(Spacer(1, 3 * mm))
 
     # ----- Academic Performance -----
     story.append(Paragraph("ACADEMIC PERFORMANCE (Competency-Based Assessment)", styles["SectionHeader"]))
@@ -409,12 +424,12 @@ photo_path: str = None
     # Table header
     header = [
         Paragraph("<b>Subject</b>", styles["NormalTiny"]),
-        Paragraph("<b>Formative<br/>(20%)</b>", styles["NormalTiny"]),
-        Paragraph("<b>Summative<br/>(80%)</b>", styles["NormalTiny"]),
-        Paragraph("<b>Final<br/>Score</b>", styles["NormalTiny"]),
+        Paragraph("<b>Formative<br/>(AOI + CA)</b>", styles["NormalTiny"]),
+        Paragraph("<b>Summative</b>", styles["NormalTiny"]),
+        Paragraph("<b>Final</b>", styles["NormalTiny"]),
         Paragraph("<b>Grade</b>", styles["NormalTiny"]),
-        Paragraph("<b>Descriptor</b>", styles["NormalTiny"]),
-        Paragraph("<b>Teacher Comment</b>", styles["NormalTiny"]),
+        Paragraph("<b>Subject Teacher</b>", styles["NormalTiny"]),
+        Paragraph("<b>Comment</b>", styles["NormalTiny"]),
     ]
 
     data = [header]
@@ -423,7 +438,12 @@ photo_path: str = None
     grade_counts = {"A": 0, "B": 0, "C": 0, "D": 0, "E": 0}
 
     for m in marks:
+        aoi = m.get("AOI (out of 100)")
+        ca = m.get("CA (out of 100)")
         form = m.get("Formative (out of 100)")
+        # Backward compatibility: derive formative from AOI + CA when available.
+        if (pd.isna(form) or form is None) and not pd.isna(aoi) and not pd.isna(ca):
+            form = round((float(aoi) + float(ca)) / 2, 1)
         summ = m.get("Summative (out of 100)")
         final = calculate_final_score(form, summ)
         letter, desc, _ = get_grade(final)
@@ -434,7 +454,12 @@ photo_path: str = None
             if letter in grade_counts:
                 grade_counts[letter] += 1
 
-        form_str = f"{float(form):.0f}" if not pd.isna(form) else "–"
+        if not pd.isna(aoi) and not pd.isna(ca):
+            form_str = f"{float(aoi):.0f} / {float(ca):.0f}"
+        elif not pd.isna(form):
+            form_str = f"{float(form):.0f}"
+        else:
+            form_str = "–"
         summ_str = f"{float(summ):.0f}" if not pd.isna(summ) else "–"
         final_str = f"{final:.1f}" if final is not None else "–"
 
@@ -444,11 +469,12 @@ photo_path: str = None
             Paragraph(summ_str, styles["NormalTiny"]),
             Paragraph(f"<b>{final_str}</b>", styles["NormalTiny"]),
             Paragraph(f"<b>{letter}</b>", styles["NormalTiny"]),
-            Paragraph(desc, styles["NormalTiny"]),
+            Paragraph(clean(m.get("Subject Teacher", "")) or "—", styles["NormalTiny"]),
             Paragraph(clean(m.get("Teacher Comment (optional)", "")), styles["NormalTiny"]),
         ])
 
-    col_widths = [38*mm, 18*mm, 18*mm, 16*mm, 12*mm, 28*mm, 40*mm]
+    # Formative is explicitly labelled AOI + CA to reflect the school assessment structure.\n    # Compact widths help keep normal report cards on one A4 page.
+    col_widths = [31*mm, 15*mm, 15*mm, 14*mm, 10*mm, 29*mm, 41*mm]
     table = Table(data, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1F4E79")),
@@ -633,8 +659,7 @@ def generate_all_reports(excel_path: str, output_dir: str = "generated_reports")
             term=term,
             year=year,
             report_date=report_date,
-            output_path=out_path,
-            photo_path=student.get("Photo")
+            output_path=out_path
         )
         print(f"  ✓ {filename}")
         generated.append(out_path)
