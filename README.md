@@ -131,3 +131,14 @@ The default administrator credentials in code are only for initial/local use. Se
 ### Uganda-aligned report-card presentation
 
 The report-card academic table labels formative assessment explicitly as **Formative (AOI + CA)** and keeps **Summative** separate. The software treats the exact assessment weighting/calculation as configurable rather than claiming that the generated school report card is an official UNEB certificate.
+
+
+## V6 build additions
+- Separate AOI and CA entry with automatic Formative (AOI + CA).
+- Term and academic-year fields on assessments.
+- Teacher accounts and class/subject assignments.
+- Admin subscription screen.
+- Database-backed individual and class report-card generation.
+- Safer startup: a broken Render DATABASE_URL is reported in the browser instead of crashing before the service can expose health information.
+
+**Assessment calculation note:** the current software configuration combines AOI and CA by their arithmetic mean and then calculates Final = 20% Formative + 80% Summative. These weights should be treated as school-configurable until the applicable official assessment instructions for the relevant cohort are confirmed.
