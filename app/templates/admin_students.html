@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Student Register{% endblock %}
+{% block content %}
+<div class="card"><h2>👨‍🎓 Student Register</h2>
+<p class="muted">Register learners here before teachers enter their marks.</p>
+<form method="post" enctype="multipart/form-data">
+<div class="grid">
+<div><label>Admission No. *</label><input name="admission_no" required></div>
+<div><label>LIN</label><input name="lin"></div>
+<div><label>Surname *</label><input name="surname" required></div>
+<div><label>First Name *</label><input name="first_name" required></div>
+<div><label>Other Names</label><input name="other_names"></div>
+<div><label>Sex</label><select name="sex"><option value="">--</option><option>M</option><option>F</option></select></div>
+<div><label>Class *</label><input name="class_name" placeholder="S1, S2, S3..." required></div>
+<div><label>Stream</label><input name="stream"></div>
+<div><label>Date of Birth</label><input name="date_of_birth" placeholder="DD/MM/YYYY"></div>
+<div><label>Parent / Guardian</label><input name="parent_guardian"></div>
+<div><label>Contact</label><input name="contact"></div>
+<div><label>Attendance %</label><input type="number" name="attendance" min="0" max="100" step="0.1"></div>
+<div><label>Days Present</label><input type="number" name="days_present" min="0"></div>
+<div><label>Days Absent</label><input type="number" name="days_absent" min="0"></div>
+<div><label>Learner Photo</label><input type="file" name="photo" accept="image/png,image/jpeg,image/webp"></div>
+</div>
+<label>Class Teacher Comment</label><textarea name="class_teacher_comment" rows="2"></textarea>
+<label>Head Teacher Comment</label><textarea name="head_teacher_comment" rows="2"></textarea>
+<button class="btn green" style="margin-top:12px">Register Student</button>
+</form></div>
+
+<div class="card"><h2>Class Report Cards</h2>
+<p class="muted">Download all report cards for a class after marks have been entered.</p>
+<div class="grid">
+{% set class_list = students|map(attribute='class_name')|list|unique|list %}
+{% for cls in class_list %}
+<div><b>{{ cls }}</b><br><a class="btn primary" style="margin-top:6px" href="{{url_for('generate_class_reports',class_name=cls)}}">Download {{cls}} ZIP</a></div>
+{% else %}<p class="muted">No classes available yet.</p>{% endfor %}
+</div></div>
+<div class="card"><h2>Registered Learners</h2>
+<div style="overflow:auto"><table>
+<tr><th>Admission</th><th>LIN</th><th>Name</th><th>Class</th><th>Sex</th><th>Actions</th></tr>
+{% for st in students %}
+<tr>
+<td>{{st.admission_no}}</td><td>{{st.lin or '—'}}</td>
+<td>{{st.surname}} {{st.first_name}} {{st.other_names or ''}}</td>
+<td>{{st.class_name}} {{st.stream or ''}}</td><td>{{st.sex or '—'}}</td>
+<td>
+<a class="btn primary" style="padding:6px 9px" href="{{url_for('generate_student_report',student_id=st.id)}}">Report Card</a>
+<form method="post" action="{{url_for('delete_student',student_id=st.id)}}" style="display:inline" onsubmit="return confirm('Remove this student from the active register?')">
+<button class="btn danger" style="padding:6px 9px">Remove</button></form>
+</td>
+</tr>
+{% else %}<tr><td colspan="6">No students registered yet.</td></tr>{% endfor %}
+</table></div></div>
+{% endblock %}

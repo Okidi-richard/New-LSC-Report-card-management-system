@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% block title %}Subscription{% endblock %}
+{% block content %}
+<div class="card"><h2>💳 School Term Subscription</h2>
+<p>The system is designed to operate on a <b>UGX 150,000 per-term school subscription</b>.</p>
+{% if subscriptions %}
+<table><tr><th>Date</th><th>Amount</th><th>Reference</th><th>Status</th><th>Period</th></tr>
+{% for s in subscriptions %}<tr><td>{{s.created_at.strftime('%d/%m/%Y')}}</td><td>UGX {{'{:,.0f}'.format(s.amount_ugx)}}</td><td>{{s.payment_reference or '—'}}</td><td><span class="badge {{s.status}}">{{s.status|upper}}</span></td><td>{{s.start_date or '—'}} to {{s.end_date or '—'}}</td></tr>{% endfor %}</table>
+{% endif %}
+</div>
+{% if current_user.role == 'admin' %}<div class="card"><h2>Activate a Paid Term</h2>
+<p class="muted">For this first version, the administrator verifies the school's payment and enters the payment/mobile-money reference below. The system then activates 90 days of access. We can connect automatic MTN/Airtel/Flutterwave payment processing as a later step.</p>
+<form method="post"><label>Payment reference / transaction ID</label><input name="payment_reference" placeholder="Enter the verified payment reference" required>
+<button class="btn green" name="action" value="activate" style="margin-top:12px">Activate UGX 150,000 Term</button></form>
+</div>{% else %}
+<div class="card"><h2>School Access</h2><p class="muted">Only the school administrator can activate or renew the school's subscription. Please contact the administrator if your access has expired.</p></div>
+{% endif %}
+{% endblock %}

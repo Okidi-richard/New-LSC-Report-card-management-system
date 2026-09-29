@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% block title %}Administrator Dashboard{% endblock %}
+{% block content %}
+<div class="card"><h2>🏫 Administrator Dashboard</h2>
+<p><b>{{ school.name }}</b> · {{ school.district }}</p>
+{% if subscription %}<span class="badge active">SUBSCRIPTION ACTIVE</span> <span class="muted">Until {{ subscription.end_date.strftime('%d/%m/%Y') }}</span>
+{% else %}<span class="badge expired">SUBSCRIPTION NOT ACTIVE</span> <a href="{{ url_for('subscription') }}">Activate subscription</a>{% endif %}
+</div>
+<div class="grid">
+<div class="card"><div class="muted">Teachers</div><div class="stat">{{ teachers|length }}</div></div><div class="card"><div class="muted">Registered students</div><div class="stat">{{ students_count }}</div></div>
+<div class="card"><div class="muted">Recent monitored marks</div><div class="stat">{{ recent_marks|length }}</div></div>
+<div class="card"><div class="muted">Term price</div><div class="stat">150K</div><div class="small muted">UGX per term</div></div>
+</div>
+<div class="card"><h2>👨‍🎓 Student Register</h2><p class="muted">Register learners once so teachers can select them when entering marks.</p><a class="btn primary" href="{{ url_for('admin_students') }}">Open Student Register</a></div>
+<div class="card"><h2>👨‍🏫 Teacher Accounts</h2>
+<form method="post" action="{{ url_for('add_teacher') }}" class="grid">
+<div><label>Teacher name</label><input name="full_name" required></div>
+<div><label>Email</label><input type="email" name="email" required></div>
+<div><label>Temporary password</label><input type="password" name="password" minlength="6" required></div>
+<div style="align-self:end"><button class="btn green">Create Teacher</button></div>
+</form>
+{% if teachers %}<div style="overflow:auto;margin-top:15px"><table><tr><th>Name</th><th>Email</th><th>Status</th></tr>{% for t in teachers %}<tr><td>{{t.full_name}}</td><td>{{t.email}}</td><td>{{'Active' if t.active else 'Disabled'}}</td></tr>{% endfor %}</table></div>{% endif %}
+</div>
+<div class="card"><h2>📡 Live Mark Monitoring</h2><p class="muted">Whenever a teacher saves or updates a mark, it appears here after the dashboard is refreshed.</p>
+<div style="overflow:auto"><table><tr><th>Updated</th><th>Teacher</th><th>Student</th><th>Class</th><th>Subject</th><th>Formative<br>(AOI + CA)</th><th>Summative</th><th>Final</th></tr>
+{% for m in recent_marks %}<tr><td>{{m.updated_at.strftime('%d/%m/%Y %H:%M')}}</td><td>{{m.teacher.full_name}}</td><td>{{m.student_name}}<br><span class="small muted">{{m.admission_no}}</span></td><td>{{m.class_name}}</td><td>{{m.subject}}</td><td>{% if m.aoi is not none and m.ca is not none %}{{m.aoi|float|round(1)}} / {{m.ca|float|round(1)}}{% elif m.formative is not none %}{{m.formative|float|round(1)}}{% else %}—{% endif %}</td><td>{{m.summative or '—'}}</td><td><b>{{m.final_score or '—'}}</b></td></tr>{% else %}<tr><td colspan="8">No marks have been entered yet.</td></tr>{% endfor %}
+</table></div></div>
+<div class="card"><h2>📝 System Activity</h2><div style="overflow:auto"><table><tr><th>Time</th><th>Action</th><th>Details</th></tr>{% for l in logs %}<tr><td>{{l.created_at.strftime('%d/%m/%Y %H:%M')}}</td><td>{{l.action}}</td><td>{{l.details}}</td></tr>{% else %}<tr><td colspan="3">No activity yet.</td></tr>{% endfor %}</table></div></div>
+{% endblock %}

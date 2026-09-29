@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% block title %}Login{% endblock %}
+{% block content %}<div class="card" style="max-width:480px;margin:35px auto"><h2>🔐 School Login</h2>
+<form method="post">
+<label>Email</label><input type="email" name="email" required>
+<label>Password</label><input type="password" name="password" required>
+<button class="btn primary" style="margin-top:15px;width:100%">Sign in</button>
+</form>
+<p class="muted small" style="margin-top:14px">Teachers use their teacher account. The school administrator uses the administrator account.</p>
+</div>{% endblock %}

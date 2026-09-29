@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block title %}Teacher Dashboard{% endblock %}
+{% block content %}
+<div class="card"><h2>👩‍🏫 Teacher Dashboard</h2><p>Welcome, <b>{{ current_user.full_name }}</b>.</p>
+{% if active_subscription %}<span class="badge active">School access active until {{active_subscription.end_date.strftime('%d/%m/%Y')}}</span>{% else %}<span class="badge expired">School subscription inactive</span>{% endif %}
+</div>
+<div class="card"><h2>Enter a Mark</h2><p class="muted">Marks are saved to the central school database. The administrator can monitor them from a phone or computer.</p><a class="btn primary" href="{{url_for('teacher_marks')}}">Open Mark Entry</a></div>
+<div class="card"><h2>Recent Marks You Entered</h2><div style="overflow:auto"><table><tr><th>Time</th><th>Student</th><th>Class</th><th>Subject</th><th>Formative</th><th>Summative</th><th>Final</th></tr>
+{% for m in marks %}<tr><td>{{m.updated_at.strftime('%d/%m/%Y %H:%M')}}</td><td>{{m.student_name}}<br><span class="small muted">{{m.admission_no}}</span></td><td>{{m.class_name}}</td><td>{{m.subject}}</td><td>{{m.formative or '—'}}</td><td>{{m.summative or '—'}}</td><td><b>{{m.final_score or '—'}}</b></td></tr>{% else %}<tr><td colspan="7">No marks entered yet.</td></tr>{% endfor %}</table></div></div>
+<div class="card"><h2>Generate Report Cards from Excel</h2><p class="muted">The existing Excel/PDF workflow remains available for report-card production.</p><a class="btn outline" href="{{url_for('download_template')}}">Download Excel Template</a>
+<form action="{{url_for('generate')}}" method="post" enctype="multipart/form-data" style="margin-top:15px"><input type="file" name="excel_file" accept=".xlsx,.xls" required><button class="btn green" style="margin-top:8px">Upload & Generate</button></form></div>
+{% endblock %}

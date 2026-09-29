@@ -1,0 +1,50 @@
+{% extends "base.html" %}{% block title %}Enter Marks{% endblock %}
+{% block content %}
+<div class="card"><h2>✏️ Enter / Update Student Mark</h2>
+<p class="muted">Select a registered learner. The administrator can see every saved mark centrally.</p>
+<form method="post">
+<div class="grid">
+<div style="grid-column:1/-1"><label>Registered student</label>
+<select name="student_id" id="student_id" required>
+<option value="">-- Select learner --</option>
+{% for st in students %}
+<option value="{{ st.id }}"
+data-admission="{{ st.admission_no }}"
+data-name="{{ st.surname }} {{ st.first_name }} {{ st.other_names or '' }}"
+data-class="{{ st.class_name }}">{{ st.admission_no }} — {{ st.surname }} {{ st.first_name }}{% if st.other_names %} {{ st.other_names }}{% endif %} ({{ st.class_name }}{% if st.stream %} {{ st.stream }}{% endif %})</option>
+{% endfor %}
+</select></div>
+<div><label>Admission No.</label><input name="admission_no" id="admission_no" readonly required></div>
+<div><label>Student Name</label><input name="student_name" id="student_name" readonly required></div>
+<div><label>Class</label><input name="class_name" id="class_name" readonly required></div>
+<div><label>Subject</label><input name="subject" placeholder="e.g. Agriculture" required></div>
+<div><label>AOI /100</label><input type="number" name="aoi" min="0" max="100" step="0.1"></div>
+<div><label>CA /100</label><input type="number" name="ca" min="0" max="100" step="0.1"></div>
+<div><label>Formative (AOI + CA)</label><input id="formative_preview" type="number" readonly placeholder="Auto-calculated"></div>
+<div><label>Summative /100</label><input type="number" name="summative" min="0" max="100" step="0.1"></div>
+</div>
+<label>Teacher comment (optional)</label><textarea name="teacher_comment" rows="3"></textarea>
+<button class="btn green" style="margin-top:12px">Save Mark</button>
+<a class="btn outline" href="{{url_for('teacher_dashboard')}}">Cancel</a>
+</form></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const sel=document.getElementById('student_id');
+sel.addEventListener('change',()=>{
+ const o=sel.options[sel.selectedIndex];
+ document.getElementById('admission_no').value=o.dataset.admission||'';
+ document.getElementById('student_name').value=(o.dataset.name||'').replace(/\s+/g,' ').trim();
+ document.getElementById('class_name').value=o.dataset.class||'';
+});
+const aoi=document.querySelector('[name="aoi"]');
+const ca=document.querySelector('[name="ca"]');
+const preview=document.getElementById('formative_preview');
+function updateFormative(){
+ const a=parseFloat(aoi.value), c=parseFloat(ca.value);
+ preview.value=Number.isFinite(a)&&Number.isFinite(c)?((a+c)/2).toFixed(1):'';
+}
+aoi.addEventListener('input',updateFormative);
+ca.addEventListener('input',updateFormative);
+</script>
+{% endblock %}
